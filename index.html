@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sprite Fighters">
+  <meta name="theme-color" content="#1b1030">
+  <meta name="description" content="Sprite Fighters: Outback Brawl - a cartoon Aussie animal fighting game for all ages.">
+  <title>Sprite Fighters: Outback Brawl</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="wrap">
+      <canvas id="game" width="960" height="540"></canvas>
+
+      <!-- TITLE -->
+      <section id="scr-title" class="screen dim">
+        <div class="logo">
+          <div class="logo-top">SPRITE FIGHTERS</div>
+          <div class="logo-sub">🦘 OUTBACK BRAWL 🐨</div>
+        </div>
+        <div class="menu col">
+          <button class="btn big" data-act="mode-1p">🦘 1 Player vs CPU</button>
+          <button class="btn big" data-act="mode-2p">👫 2 Players</button>
+          <button class="btn big" data-act="mode-arcade">🏆 Arcade</button>
+          <div class="row">
+            <button class="btn" data-act="howto">❓ How to Play</button>
+            <button class="btn" data-act="settings">⚙️ Settings</button>
+            <button class="btn" data-act="fullscreen" id="fs-btn">⛶ Full Screen</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DIFFICULTY -->
+      <section id="scr-diff" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2>How tough is the CPU?</h2>
+        <div class="diff-grid">
+          <button class="btn diff" data-diff="easy"><span class="em">🟢</span><b>Easy</b><small>Slow and friendly. Great for learning!</small></button>
+          <button class="btn diff" data-diff="medium"><span class="em">🟡</span><b>Medium</b><small>Blocks sometimes and fights back.</small></button>
+          <button class="btn diff" data-diff="hard"><span class="em">🔴</span><b>Hard</b><small>Quick, clever and dodges Ultimates.</small></button>
+          <button class="btn diff" data-diff="champion"><span class="em">🏆</span><b>Champion</b><small>Reads your moves. Good luck, mate!</small></button>
+        </div>
+      </section>
+
+      <!-- CHARACTER SELECT -->
+      <section id="scr-select" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2 id="select-title">Choose your fighter</h2>
+        <div class="select-body">
+          <div class="roster" id="roster"></div>
+          <div class="info" id="info">
+            <canvas id="info-portrait" width="260" height="260"></canvas>
+            <div class="info-text">
+              <div class="info-name" id="info-name"></div>
+              <div class="info-style" id="info-style"></div>
+              <div class="stats" id="info-stats"></div>
+              <div class="moves" id="info-moves"></div>
+            </div>
+            <div class="row">
+              <button class="btn" data-act="random-pick" id="random-btn">🎲 Random</button>
+              <button class="btn go" data-act="confirm-pick" id="confirm-btn">Pick ▶</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STAGE SELECT -->
+      <section id="scr-stage" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2>Pick a stage</h2>
+        <div class="stage-grid" id="stage-grid"></div>
+      </section>
+
+      <!-- VS -->
+      <section id="scr-vs" class="screen solid vs">
+        <div class="vs-side left"><canvas id="vs-p1" width="300" height="300"></canvas><div class="vs-name" id="vs-n1"></div></div>
+        <div class="vs-mid"><div class="vs-text">VS</div><div class="vs-stage" id="vs-stage"></div></div>
+        <div class="vs-side right"><canvas id="vs-p2" width="300" height="300"></canvas><div class="vs-name" id="vs-n2"></div></div>
+      </section>
+
+      <!-- PAUSE -->
+      <section id="scr-pause" class="screen dim">
+        <h2>Paused</h2>
+        <div class="menu col">
+          <button class="btn big" data-act="resume">▶ Resume</button>
+          <button class="btn big" data-act="restart">🔄 Restart Match</button>
+          <button class="btn" data-act="howto">❓ Controls</button>
+          <button class="btn" data-act="quit">🏠 Main Menu</button>
+        </div>
+      </section>
+
+      <!-- RESULTS -->
+      <section id="scr-results" class="screen dim">
+        <div class="results">
+          <canvas id="res-portrait" width="260" height="260"></canvas>
+          <div class="res-text">
+            <div class="res-title" id="res-title"></div>
+            <div class="res-quote" id="res-quote"></div>
+            <div class="menu col" id="res-buttons"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOW TO PLAY -->
+      <section id="scr-howto" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2>How to Play</h2>
+        <div class="scroll">
+          <div class="howto-grid">
+            <div class="card">
+              <h3>🎯 The Basics</h3>
+              <ul>
+                <li><b>Move</b> left and right, <b>jump</b> with up, <b>crouch</b> with down.</li>
+                <li><b>Block</b> by holding <i>away</i> from your opponent.</li>
+                <li>👊 <b>Punch</b> is fast. 🦶 <b>Kick</b> is strong. Hold <b>down</b> for low attacks. A low kick trips them over!</li>
+                <li>⭐ <b>Special</b> is each fighter's signature move.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>⚡ Hard Yakka & Ultimates</h3>
+              <ul>
+                <li>The blue <b>Hard Yakka</b> meter fills when you hit, get hit or block.</li>
+                <li><b>Hold ⚡</b> to charge it faster, but you can't move or block while charging!</li>
+                <li>When it glows gold, <b>tap ⚡</b> for your <b>Ultimate Attack!</b></li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>⌨️ Keyboard</h3>
+              <table>
+                <tr><th></th><th>Player 1</th><th>Player 2</th></tr>
+                <tr><td>Move / Jump</td><td>W A S D</td><td>Arrow keys</td></tr>
+                <tr><td>👊 Punch</td><td>F</td><td>K or ,</td></tr>
+                <tr><td>🦶 Kick</td><td>G</td><td>L or .</td></tr>
+                <tr><td>⭐ Special</td><td>H</td><td>; or /</td></tr>
+                <tr><td>⚡ Charge / Ultimate</td><td>R</td><td>P or Right Shift</td></tr>
+                <tr><td>Pause</td><td colspan="2">Esc</td></tr>
+              </table>
+              <p class="note">Playing solo? Either set of keys works.</p>
+            </div>
+            <div class="card">
+              <h3>📱 Touch & 🎮 Gamepad</h3>
+              <ul>
+                <li><b>Touch:</b> drag the joystick to move (push up to jump) and tap the 👊 🦶 ⭐ ⚡ buttons. Two players? Each gets their own side of the screen.</li>
+                <li><b>Gamepad:</b> D-pad/stick to move. A = Punch, B = Kick, X = Special, Y or RB = ⚡. Start = pause.</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h3>🐨 Watch out for Drop Bears!</h3>
+              <p>Sometimes a Drop Bear falls from the sky. When you see its shadow and the warning, move out of the way! (You can turn them off in Settings.)</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="scr-settings" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2>Settings</h2>
+        <div class="settings" id="settings-list"></div>
+      </section>
+
+      <button id="pause-btn" class="hidden" aria-label="Pause">II</button>
+    </div>
+    <div id="touch"></div>
+    <div id="rotate">
+      <div class="rotate-icon">📱↻</div>
+      <div>Turn your device sideways to play!</div>
+    </div>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/draw.js"></script>
+  <script src="js/fighters.js"></script>
+  <script src="js/stages.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/fighter.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

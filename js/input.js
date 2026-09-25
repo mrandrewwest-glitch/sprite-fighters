@@ -1,0 +1,215 @@
+// Keyboard, gamepad and on-screen touch controls, merged into one
+// simple "held buttons" object per player.
+SF.ACTIONS = ['left', 'right', 'up', 'down', 'punch', 'kick', 'special', 'charge'];
+SF.blankInput = () => {
+  const o = {};
+  SF.ACTIONS.forEach((a) => (o[a] = false));
+  return o;
+};
+
+SF.Input = (() => {
+  const KEYMAPS = [
+    { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyF: 'punch', KeyG: 'kick', KeyH: 'special', KeyR: 'charge' },
+    {
+      ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+      Comma: 'punch', Period: 'kick', Slash: 'special', ShiftRight: 'charge',
+      Numpad1: 'punch', Numpad2: 'kick', Numpad3: 'special', Numpad0: 'charge',
+      KeyK: 'punch', KeyL: 'kick', Semicolon: 'special', KeyP: 'charge',
+    },
+  ];
+  const keys = [SF.blankInput(), SF.blankInput()];
+  const touch = [SF.blankInput(), SF.blankInput()];
+  // Presses are latched until read, so a tap shorter than one frame still counts.
+  const latch = [SF.blankInput(), SF.blankInput()];
+
+  window.addEventListener('keydown', (e) => {
+    for (let i = 0; i < 2; i++) {
+      const a = KEYMAPS[i][e.code];
+      if (a) {
+        keys[i][a] = true;
+        latch[i][a] = true;
+        if (SF.Input.inFight) e.preventDefault();
+      }
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    for (let i = 0; i < 2; i++) {
+      const a = KEYMAPS[i][e.code];
+      if (a) keys[i][a] = false;
+    }
+  });
+  window.addEventListener('blur', () => {
+    keys.forEach((k) => SF.ACTIONS.forEach((a) => (k[a] = false)));
+  });
+
+  function readPad(pad, out) {
+    if (!pad) return;
+    const b = (i) => pad.buttons[i] && pad.buttons[i].pressed;
+    const ax = pad.axes[0] || 0;
+    const ay = pad.axes[1] || 0;
+    if (b(14) || ax < -0.4) out.left = true;
+    if (b(15) || ax > 0.4) out.right = true;
+    if (b(12) || ay < -0.55) out.up = true;
+    if (b(13) || ay > 0.55) out.down = true;
+    if (b(0)) out.punch = true;
+    if (b(1)) out.kick = true;
+    if (b(2)) out.special = true;
+    if (b(3) || b(5) || b(7)) out.charge = true;
+  }
+
+  function pads() {
+    try {
+      return Array.from(navigator.getGamepads ? navigator.getGamepads() : []).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // merged = true lets one player use every keyboard layout and any gamepad.
+  function read(i, merged) {
+    const out = SF.blankInput();
+    const ps = pads();
+    SF.ACTIONS.forEach((a) => {
+      out[a] = merged ? keys[0][a] || keys[1][a] || latch[0][a] || latch[1][a] : keys[i][a] || latch[i][a];
+      if (touch[i][a] || latch[i][a]) out[a] = true;
+      latch[i][a] = false;
+      if (merged) latch[0][a] = latch[1][a] = false;
+    });
+    if (merged) ps.forEach((p) => readPad(p, out));
+    else readPad(ps[i], out);
+    return out;
+  }
+
+  // ---------- Touch controls ----------
+  const BUTTONS = [
+    { a: 'punch', label: '👊', cls: 'b-punch' },
+    { a: 'kick', label: '🦶', cls: 'b-kick' },
+    { a: 'special', label: '⭐', cls: 'b-special' },
+    { a: 'charge', label: '⚡', cls: 'b-charge' },
+  ];
+
+  function clearTouch() {
+    touch.concat(latch).forEach((t) => SF.ACTIONS.forEach((a) => (t[a] = false)));
+  }
+
+  function makeStick(player) {
+    const el = document.createElement('div');
+    el.className = 'stick';
+    const knob = document.createElement('div');
+    knob.className = 'knob';
+    el.appendChild(knob);
+    let pid = null;
+    const set = (e) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const rad = r.width / 2;
+      let dx = (e.clientX - cx) / rad;
+      let dy = (e.clientY - cy) / rad;
+      const m = Math.hypot(dx, dy);
+      if (m > 1) {
+        dx /= m;
+        dy /= m;
+      }
+      knob.style.transform = `translate(${dx * rad * 0.55}px, ${dy * rad * 0.55}px)`;
+      const t = touch[player];
+      t.left = dx < -0.35;
+      t.right = dx > 0.35;
+      t.up = dy < -0.5;
+      t.down = dy > 0.5;
+    };
+    const release = () => {
+      pid = null;
+      knob.style.transform = '';
+      const t = touch[player];
+      t.left = t.right = t.up = t.down = false;
+    };
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      pid = e.pointerId;
+      try { el.setPointerCapture(pid); } catch (err) { /* ignore */ }
+      set(e);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (e.pointerId === pid) set(e);
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) =>
+      el.addEventListener(ev, (e) => {
+        if (e.pointerId === pid) release();
+      })
+    );
+    return el;
+  }
+
+  function makeButton(player, def) {
+    const el = document.createElement('div');
+    el.className = 'tbtn ' + def.cls;
+    el.dataset.action = def.a;
+    el.textContent = def.label;
+    const on = (e) => {
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      touch[player][def.a] = true;
+      latch[player][def.a] = true;
+      el.classList.add('down');
+    };
+    const off = () => {
+      touch[player][def.a] = false;
+      el.classList.remove('down');
+    };
+    el.addEventListener('pointerdown', on);
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => el.addEventListener(ev, off));
+    return el;
+  }
+
+  // players: array of player indexes that need controls. split = two pads.
+  function buildTouch(players) {
+    const root = document.getElementById('touch');
+    root.innerHTML = '';
+    clearTouch();
+    const split = players.length > 1;
+    root.className = split ? 'split' : 'single';
+    players.forEach((p, idx) => {
+      const pad = document.createElement('div');
+      pad.className = 'pad ' + (idx === 0 ? 'pad-left' : 'pad-right');
+      const stick = makeStick(p);
+      const btns = document.createElement('div');
+      btns.className = 'btns';
+      BUTTONS.forEach((b) => btns.appendChild(makeButton(p, b)));
+      if (idx === 0) {
+        pad.appendChild(stick);
+        if (split) pad.appendChild(btns);
+        else root.appendChild(btns);
+      } else {
+        pad.appendChild(btns);
+        pad.appendChild(stick);
+      }
+      if (split) {
+        const tag = document.createElement('div');
+        tag.className = 'pad-tag';
+        tag.textContent = 'P' + (p + 1);
+        pad.appendChild(tag);
+      }
+      root.appendChild(pad);
+    });
+  }
+
+  function hideTouch() {
+    const root = document.getElementById('touch');
+    root.innerHTML = '';
+    root.className = '';
+    clearTouch();
+  }
+
+  function setChargeReady(player, ready) {
+    document
+      .querySelectorAll('#touch .b-charge')
+      .forEach((el, i) => {
+        const pads = document.querySelectorAll('#touch .b-charge').length;
+        const owner = pads > 1 ? i : 0;
+        if (owner === player) el.classList.toggle('ready', ready);
+      });
+  }
+
+  return { read, pads, buildTouch, hideTouch, setChargeReady, inFight: false };
+})();
