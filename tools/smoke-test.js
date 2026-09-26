@@ -34,7 +34,7 @@ const out = process.argv[3] || '.';
         });
         m.f.forEach((f) => (f.meter = 100));
         let ults = 0;
-        for (let i = 0; i < 60 * 60 * 4 && ended === null; i++) {
+        for (let i = 0; i < 60 * 60 * 5 && ended === null; i++) {
           m.update();
           if (m.cine && m.cine.t === 1) ults++;
           if (i % 600 === 0) m.f.forEach((f) => (f.meter = 100));

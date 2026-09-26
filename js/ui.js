@@ -43,9 +43,10 @@
     }
     const fighting = !id && ui.match && !ui.match.paused;
     $('#pause-btn').classList.toggle('hidden', !fighting);
+    $('#wrap').classList.toggle('table-mode', !!(fighting && ui.match.o.table));
     SF.Input.inFight = !!fighting;
     if (fighting && wantsTouch()) {
-      SF.Input.buildTouch(ui.match.o.touchPlayers);
+      SF.Input.buildTouch(ui.match.o.touchPlayers, ui.match.o.touchLayout);
     } else {
       SF.Input.hideTouch();
     }
@@ -98,9 +99,12 @@
   }
 
   // ------------------------------------------------------------ flow
+  const isArena = () => ui.flow.mode.startsWith('arena');
+  const isTwoPlayer = () => ui.flow.mode === '2p' || ui.flow.mode === 'arena2p';
+
   function startMode(mode) {
     ui.flow = { mode, step: 'p1', diff: 'medium', p1: null, p2: null, stage: null, sel: null };
-    if (mode === '2p') go('select', 'p1');
+    if (mode === '2p' || mode === 'arena2p') go('select', 'p1');
     else go('diff');
   }
 
@@ -135,7 +139,9 @@
     SF.drawPortrait($('#vs-p2'), f.p2, { zoom: 0.9, flip: true, alt: f.p1 === f.p2 });
     $('#vs-n1').textContent = SF.FIGHTERS[f.p1].name;
     $('#vs-n2').textContent = SF.FIGHTERS[f.p2].name;
-    let sub = SF.STAGES[f.stage].emoji + ' ' + SF.STAGES[f.stage].name;
+    const place = isArena() ? SF.ARENAS[f.stage] : SF.STAGES[f.stage];
+    let sub = place.emoji + ' ' + place.name;
+    if (isArena()) sub = '🪃 Boomerang Arena<br>' + sub;
     if (f.mode === 'arcade') sub = `Fight ${f.idx + 1} of ${f.ladder.length}<br>` + sub;
     $('#vs-stage').innerHTML = sub;
     SF.Audio.play('gong');
@@ -147,7 +153,9 @@
     clearTimeout(ui.vsTimer);
     if (ui.screen !== 'vs') return;
     const f = ui.flow;
-    const vsCpu = f.mode !== '2p';
+    const vsCpu = !isTwoPlayer();
+    const arena = isArena();
+    const table = arena && !vsCpu && wantsTouch();
     const opts = {
       p1: f.p1,
       p2: f.p2,
@@ -156,19 +164,22 @@
         ? [{ type: 'human', slot: 0, merged: true }, { type: 'ai', level: f.diff }]
         : [{ type: 'human', slot: 0 }, { type: 'human', slot: 1 }],
       touchPlayers: vsCpu ? [0] : [0, 1],
+      touchLayout: table ? 'table' : vsCpu ? 'single' : 'split',
+      arena,
+      table,
       rounds: SF.settings.rounds,
       timer: SF.settings.timer,
       onEnd: onMatchEnd,
     };
     ui.demo = null;
-    ui.match = new SF.Match(opts);
+    ui.match = arena ? new SF.ArenaMatch(opts) : new SF.Match(opts);
     ui.history = [];
     show(null);
   }
 
   function restartMatch() {
     const o = ui.match.o;
-    ui.match = new SF.Match(o);
+    ui.match = o.arena ? new SF.ArenaMatch(o) : new SF.Match(o);
     show(null);
   }
 
@@ -176,7 +187,7 @@
     if (match !== ui.match) return;
     const f = ui.flow;
     const wf = match.f[winner];
-    const humanWon = f.mode === '2p' || winner === 0;
+    const humanWon = isTwoPlayer() || winner === 0;
     let title = wf.def.name + ' WINS!';
     let quote = '“' + wf.def.win + '”';
     const buttons = [];
@@ -263,8 +274,8 @@
     const f = ui.flow;
     const title =
       f.step === 'p1'
-        ? f.mode === '2p' ? '<span style="color:#ff6b6b">Player 1</span>: choose your fighter' : 'Choose your fighter'
-        : f.mode === '2p' ? '<span style="color:#4ab3ff">Player 2</span>: choose your fighter' : 'Choose your opponent';
+        ? isTwoPlayer() ? '<span style="color:#ff6b6b">Player 1</span>: choose your fighter' : 'Choose your fighter'
+        : isTwoPlayer() ? '<span style="color:#4ab3ff">Player 2</span>: choose your fighter' : 'Choose your opponent';
     $('#select-title').innerHTML = title;
     $$('.card-f').forEach((c) => {
       c.classList.toggle('p1sel', f.step === 'p2' && c.dataset.id === f.p1);
@@ -302,36 +313,41 @@
   // ------------------------------------------------------------ stage select
   function setupStages() {
     const root = $('#stage-grid');
-    if (!root.children.length) {
-      SF.STAGE_LIST.concat(['random']).forEach((id) => {
-        const b = document.createElement('button');
-        b.className = 'btn stage-card' + (id === 'random' ? ' random' : '');
-        const c = document.createElement('canvas');
-        c.width = 384;
-        c.height = 216;
-        b.appendChild(c);
-        const label = document.createElement('div');
-        label.textContent = id === 'random' ? '🎲 Random' : SF.STAGES[id].emoji + ' ' + SF.STAGES[id].name;
-        b.appendChild(label);
-        b.addEventListener('click', () => {
-          ui.flow.stage = id === 'random' ? SF.pick(SF.STAGE_LIST) : id;
-          SF.Audio.play('select');
-          showVs();
-        });
-        root.appendChild(b);
-        if (id !== 'random') {
-          // Paint thumbnails after the screen shows so it stays snappy.
-          setTimeout(() => SF.drawStageThumb(c, id), 30);
-        } else {
-          const cx = c.getContext('2d');
-          cx.font = `120px ${SF.FONT}`;
-          cx.textAlign = 'center';
-          cx.textBaseline = 'middle';
-          cx.fillStyle = '#fff';
-          cx.fillText('?', 192, 116);
-        }
+    const kind = isArena() ? 'arena' : 'stage';
+    $('#stage-title').textContent = kind === 'arena' ? 'Pick an arena' : 'Pick a stage';
+    if (root.dataset.kind === kind) return;
+    root.dataset.kind = kind;
+    root.innerHTML = '';
+    const list = kind === 'arena' ? SF.ARENA_LIST : SF.STAGE_LIST;
+    const info = kind === 'arena' ? SF.ARENAS : SF.STAGES;
+    list.concat(['random']).forEach((id) => {
+      const b = document.createElement('button');
+      b.className = 'btn stage-card' + (id === 'random' ? ' random' : '');
+      const c = document.createElement('canvas');
+      c.width = 384;
+      c.height = 216;
+      b.appendChild(c);
+      const label = document.createElement('div');
+      label.textContent = id === 'random' ? '🎲 Random' : info[id].emoji + ' ' + info[id].name;
+      b.appendChild(label);
+      b.addEventListener('click', () => {
+        ui.flow.stage = id === 'random' ? SF.pick(list) : id;
+        SF.Audio.play('select');
+        showVs();
       });
-    }
+      root.appendChild(b);
+      if (id !== 'random') {
+        // Paint thumbnails after the screen shows so it stays snappy.
+        setTimeout(() => (kind === 'arena' ? SF.drawArenaThumb(c, id) : SF.drawStageThumb(c, id)), 30);
+      } else {
+        const cx = c.getContext('2d');
+        cx.font = `120px ${SF.FONT}`;
+        cx.textAlign = 'center';
+        cx.textBaseline = 'middle';
+        cx.fillStyle = '#fff';
+        cx.fillText('?', 192, 116);
+      }
+    });
   }
 
   // ------------------------------------------------------------ settings
@@ -385,6 +401,9 @@
       case 'mode-1p': return startMode('1p');
       case 'mode-2p': return startMode('2p');
       case 'mode-arcade': return startMode('arcade');
+      case 'mode-arena': return go('arena');
+      case 'arena-1p': return startMode('arena1p');
+      case 'arena-2p': return startMode('arena2p');
       case 'howto': return go('howto');
       case 'settings': return go('settings');
       case 'back': return back();

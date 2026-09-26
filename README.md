@@ -1,6 +1,6 @@
 # 🦘 Sprite Fighters: Outback Brawl 🐨
 
-A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, or battle through **Arcade** mode. It runs in the browser on computers, iPads and phones, with no install needed.
+A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, battle through **Arcade** mode, or run around the top-down **🪃 Boomerang Arena**. It runs in the browser on computers, iPads and phones, with no install needed.
 
 ## Fighters (all 12)
 
@@ -20,6 +20,18 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 | 🦜 **Cheeky the Cockatoo** | Noisy ranger. Double jump and slow fall | Screech (a sound wave; works in the air) | **Sulphur Crest Storm**: a flock of cockatoos dive-bombs from the sky, then a giant one |
 
 **Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef and Cradle Mountain.
+
+## 🪃 Boomerang Arena
+
+A top-down mode where the fighters run around in every direction, inspired by party games like Boomerang Fu.
+
+- **Move** in any direction. A little arrow shows which way you're aiming.
+- ⭐ **Throw your boomerang.** It flies out and comes back, so catch it to throw again. It hits on the way out *and* on the way back, and bounces back off rocks.
+- 👊 **Swipe** at anyone right next to you. 🦶 **Dash-kick** zooms forward and makes you briefly invincible, so use it to dodge.
+- ⚡ Every fighter's Ultimate works here too, redesigned for the arena: Koko's falling gum tree, Wombo's poo cubes, Shelly's wave and so on.
+- Snacks and Drop Bears drop in too.
+- **Face-to-Face:** choose *2 Players Face-to-Face* on a tablet and lay it flat between the players. Player 2's joystick, buttons, health bar and the announcements are turned around to face them on the far side.
+- **Arenas:** Outback Clearing, Backyard BBQ (with a spinning Hills Hoist) and Beach Cricket.
 
 ## How to play
 
@@ -79,6 +91,8 @@ js/effects.js       particles, pop-up words, screen shake
 js/fighter.js       fighter state machine, physics and animation
 js/ai.js            CPU opponent and difficulty levels
 js/game.js          a match: rounds, hits, Drop Bears, power-up snacks, HUD
+js/arena-maps.js    Boomerang Arena maps and obstacles
+js/arena.js         Boomerang Arena: top-down fighters, boomerangs, ultimates, CPU, face-to-face HUD
 js/ui.js            menus, game flow and main loop
 sw.js               offline support
 tools/              headless test and screenshot scripts
@@ -97,4 +111,5 @@ node tools/smoke-test.js http://localhost:8123/ /tmp    # every matchup CPU vs C
 node tools/ult-shots.js http://localhost:8123/ /tmp     # screenshots of every special/ultimate
 node tools/device-shots.js http://localhost:8123/ /tmp  # phone / iPad touch layouts
 node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates per fighter
+node tools/arena-test.js http://localhost:8123/ /tmp     # Boomerang Arena: every matchup + ultimate screenshots
 ```

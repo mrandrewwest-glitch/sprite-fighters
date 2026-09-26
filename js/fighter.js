@@ -333,6 +333,8 @@ SF.Fighter = class {
   }
 
   startUlt() {
+    // Only one ultimate cinematic at a time (both players may press on the same frame).
+    if (this.m.cine) return;
     this.meter = 0;
     this.wasReady = false;
     this.vx = 0;

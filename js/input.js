@@ -162,13 +162,15 @@ SF.Input = (() => {
     return el;
   }
 
-  // players: array of player indexes that need controls. split = two pads.
-  function buildTouch(players) {
+  // players: player indexes that need controls.
+  // layout: 'single' (one pad), 'split' (side by side) or 'table' (face-to-face).
+  function buildTouch(players, layout) {
     const root = document.getElementById('touch');
     root.innerHTML = '';
     clearTouch();
     const split = players.length > 1;
-    root.className = split ? 'split' : 'single';
+    layout = layout || (split ? 'split' : 'single');
+    root.className = layout;
     players.forEach((p, idx) => {
       const pad = document.createElement('div');
       pad.className = 'pad ' + (idx === 0 ? 'pad-left' : 'pad-right');
@@ -176,7 +178,21 @@ SF.Input = (() => {
       const btns = document.createElement('div');
       btns.className = 'btns';
       BUTTONS.forEach((b) => btns.appendChild(makeButton(p, b)));
-      if (idx === 0) {
+      if (layout === 'table') {
+        // Both players get the same layout; Player 2's is spun 180 degrees.
+        const holder = idx === 0 ? pad : document.createElement('div');
+        if (idx === 1) {
+          holder.className = 'pad-rot';
+          pad.appendChild(holder);
+        }
+        holder.appendChild(stick);
+        holder.appendChild(btns);
+        const tag = document.createElement('div');
+        tag.className = 'pad-tag';
+        tag.style.color = idx === 0 ? '#ff6b6b' : '#4ab3ff';
+        tag.textContent = 'P' + (p + 1);
+        holder.appendChild(tag);
+      } else if (idx === 0) {
         pad.appendChild(stick);
         if (split) pad.appendChild(btns);
         else root.appendChild(btns);
@@ -184,7 +200,7 @@ SF.Input = (() => {
         pad.appendChild(btns);
         pad.appendChild(stick);
       }
-      if (split) {
+      if (split && layout !== 'table') {
         const tag = document.createElement('div');
         tag.className = 'pad-tag';
         tag.textContent = 'P' + (p + 1);

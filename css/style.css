@@ -83,7 +83,7 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
 
 .logo { text-align: center; transform: rotate(-3deg); margin-bottom: calc(var(--u) * 4); }
 .logo-top {
-  font-size: calc(var(--u) * 86);
+  font-size: calc(var(--u) * 78);
   line-height: 0.95;
   color: var(--gold);
   -webkit-text-stroke: calc(var(--u) * 3) var(--ink);
@@ -117,7 +117,7 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
   outline: none;
   letter-spacing: 0.5px;
 }
-.btn.big { font-size: calc(var(--u) * 28); min-width: calc(var(--u) * 360); padding: calc(var(--u) * 10) calc(var(--u) * 24); }
+.btn.big { font-size: calc(var(--u) * 26); min-width: calc(var(--u) * 360); padding: calc(var(--u) * 7) calc(var(--u) * 24); }
 .btn:hover, .btn.focused, .btn:focus-visible { filter: brightness(1.1); transform: translateY(calc(var(--u) * -2)) scale(1.03); box-shadow: 0 calc(var(--u) * 7) 0 var(--ink), 0 0 0 calc(var(--u) * 4) #fff; }
 .btn:active { transform: translateY(calc(var(--u) * 4)); box-shadow: 0 calc(var(--u) * 1) 0 var(--ink); }
 .btn.go { background: linear-gradient(#b7f5a0, #4fcf45); }
@@ -329,3 +329,17 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
 @media (orientation: portrait) and (pointer: coarse) {
   #rotate { display: flex; }
 }
+
+/* ---------- boomerang arena ---------- */
+.btn.arena-btn { background: linear-gradient(#c8f7ff, #4ab3ff); }
+.blurb { margin: 0; max-width: calc(var(--u) * 640); text-align: center; font-family: system-ui, sans-serif; font-weight: 700; font-size: calc(var(--u) * 17); line-height: 1.35; color: #fff3c4; }
+.blurb.small { font-size: calc(var(--u) * 14); opacity: 0.85; }
+#scr-arena { justify-content: center; }
+
+/* Face-to-face: Player 2's controls are spun round to the far edge. */
+#touch.table .pad-rot { position: absolute; inset: 0; transform: rotate(180deg); pointer-events: none; }
+#touch.table .stick { width: min(26vmin, 160px); height: min(26vmin, 160px); left: max(2vmin, env(safe-area-inset-left)); bottom: 2vmin; }
+#touch.table .btns { width: min(32vmin, 190px); height: min(32vmin, 190px); right: max(2vmin, env(safe-area-inset-right)); bottom: 1vmin; }
+#touch.table .tbtn { font-size: min(6.5vmin, 36px); }
+#touch.table .pad-tag { bottom: calc(min(26vmin, 160px) + 3vmin); left: 4vmin; }
+#wrap.table-mode #pause-btn { top: 50%; left: calc(var(--u) * 26); transform: translateY(-50%); }
