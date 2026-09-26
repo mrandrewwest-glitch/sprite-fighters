@@ -28,8 +28,9 @@ SF.isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 SF.defaultSettings = {
   sound: true,
-  voice: true,
+  music: true,
   dropBears: true,
+  powerUps: true,
   rounds: 3, // best of
   timer: 60, // 0 = no timer
   touch: 'auto', // auto | on | off

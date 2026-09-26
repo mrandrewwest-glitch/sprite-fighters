@@ -59,7 +59,11 @@ SF.AI = class {
       case 'kip':
         return opp.onGround();
       case 'koko':
+      case 'wombo':
+      case 'dotty':
         return opp.onGround() && opp.state !== 'attack';
+      case 'dash':
+        return opp.onGround() && dist > 120;
       default:
         return true;
     }
@@ -89,11 +93,15 @@ SF.AI = class {
         return;
       }
     }
-    const tree = m.entities.find((e) => e.owner === opp && e.phase && (e.phase === 'warn' || e.phase === 'fall'));
-    if (tree && Math.abs(tree.x - me.x) < 160 && r() < P.dodge) {
-      h[me.x < tree.x ? 'left' : 'right'] = true;
-      this.timer = 10;
-      return;
+    // Step out from under falling trees, poos and geysers.
+    for (const e of m.entities) {
+      if (e.owner !== opp && !(e.dangerZone && !e.owner)) continue;
+      const z = e.dangerZone ? e.dangerZone() : e.phase === 'warn' || e.phase === 'fall' ? { x: e.x, r: 160 } : null;
+      if (z && Math.abs(z.x - me.x) < z.r && r() < P.dodge) {
+        h[me.x < z.x ? 'left' : 'right'] = true;
+        this.timer = 10;
+        return;
+      }
     }
 
     if (!['idle', 'walk', 'crouch', 'charge', 'jump', 'blockstun'].includes(me.state)) return;
@@ -122,6 +130,14 @@ SF.AI = class {
     if (dist > 380 && me.meter < 100 && me.onGround() && r() < P.charge) {
       h.charge = true;
       this.timer = 30;
+      return;
+    }
+
+    // Go for power-up snacks.
+    const snack = m.entities.find((e) => e.isPowerUp && e.landed);
+    if (snack && Math.abs(snack.x - me.x) < 350 && r() < 0.35 * P.approach) {
+      h[snack.x > me.x ? 'right' : 'left'] = true;
+      this.timer = P.think + 6;
       return;
     }
 

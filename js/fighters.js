@@ -287,11 +287,11 @@
   function baseMoves(reach = 1) {
     const r = (n) => n * reach;
     return {
-      punch: { frames: 18, pose: 'punch', sfx: 'swing', hits: [{ from: 4, to: 7, box: { x: 10, y: -118, w: r(70), h: 30 }, dmg: 5, kb: 3, stun: 15 }] },
+      punch: { frames: 18, pose: 'punch', sfx: 'swing', hits: [{ from: 4, to: 7, box: { x: 10, y: -118, w: r(70), h: 58 }, dmg: 5, kb: 3, stun: 15 }] },
       kick: { frames: 26, pose: 'kick', sfx: 'swing', hits: [{ from: 7, to: 11, box: { x: 10, y: -80, w: r(88), h: 32 }, dmg: 8, kb: 5, stun: 18 }] },
       lowPunch: { frames: 16, pose: 'lowpunch', crouch: true, sfx: 'swing', hits: [{ from: 4, to: 6, box: { x: 10, y: -70, w: r(64), h: 26 }, dmg: 4, kb: 2, stun: 13 }] },
       sweep: { frames: 32, pose: 'sweep', crouch: true, sfx: 'swing', hits: [{ from: 8, to: 12, box: { x: 10, y: -32, w: r(100), h: 30 }, dmg: 7, kb: 3, stun: 20, knockdown: true, launch: 5 }] },
-      airPunch: { frames: 22, pose: 'airpunch', air: true, landCancel: true, sfx: 'swing', hits: [{ from: 3, to: 11, box: { x: 5, y: -110, w: r(66), h: 44 }, dmg: 6, kb: 3, stun: 15 }] },
+      airPunch: { frames: 22, pose: 'airpunch', air: true, landCancel: true, sfx: 'swing', hits: [{ from: 3, to: 11, box: { x: 5, y: -110, w: r(66), h: 60 }, dmg: 6, kb: 3, stun: 15 }] },
       airKick: { frames: 26, pose: 'airkick', air: true, landCancel: true, sfx: 'swing', hits: [{ from: 4, to: 15, box: { x: 5, y: -70, w: r(76), h: 44 }, dmg: 8, kb: 4, stun: 17 }] },
     };
   }
@@ -377,6 +377,9 @@
         if (this.t > 45) this.alpha -= 0.05;
         if (this.alpha <= 0) this.dead = true;
       }
+    }
+    dangerZone() {
+      return this.phase === 'warn' || this.phase === 'fall' ? { x: this.x, r: 160 } : null;
     }
     drawBack(ctx) {
       if (this.phase !== 'warn' && this.phase !== 'fall') return;
@@ -689,7 +692,7 @@
   SF.FIGHTERS = {
     kip: {
       id: 'kip', name: 'KIP', full: 'Kip the Kangaroo', emoji: '🦘', style: 'All-Rounder',
-      height: 160, width: 56, portraitDx: 18, health: 100, speed: 4.4, jump: 16.5, power: 1, defense: 1, gravity: 1,
+      height: 160, width: 56, portraitDx: 18, health: 105, speed: 4.4, jump: 16.5, power: 1.05, defense: 1, gravity: 1,
       walk: 'hop', stats: { power: 3, speed: 4, health: 3, jump: 4 },
       passive: 'Boxing gloves: quick, long punches',
       special: { name: 'Tail-Balance Double Kick', desc: 'Leans back on his tail and double-kicks forward.' },
@@ -737,7 +740,7 @@
     },
     kooka: {
       id: 'kooka', name: 'KOOKA', full: 'Kooka the Kookaburra', emoji: '🐦', style: 'Aerial Ace',
-      height: 150, width: 52, portraitDx: 8, health: 90, speed: 4.3, jump: 17, power: 0.95, defense: 1, gravity: 0.78,
+      height: 150, width: 52, portraitDx: 8, health: 100, speed: 4.3, jump: 17, power: 1.05, defense: 1, gravity: 0.78,
       walk: 'strut', stats: { power: 2, speed: 4, health: 2, jump: 5 }, doubleJump: true,
       passive: 'Wings: can double jump and floats down slowly',
       special: { name: 'Dive-Bomb Peck', desc: 'Swoops down diagonally beak-first. Works in the air too!' },
@@ -774,7 +777,7 @@
     },
     croc: {
       id: 'croc', name: 'CAPT. CROC', full: 'Captain Croc', emoji: '🐊', style: 'Grappler',
-      height: 165, width: 62, portraitDx: 16, health: 115, speed: 3.4, jump: 14.5, power: 1.15, defense: 0.9, gravity: 1.05,
+      height: 165, width: 62, portraitDx: 16, health: 110, speed: 3.4, jump: 14.5, power: 1.08, defense: 0.9, gravity: 1.05,
       walk: 'waddle', stats: { power: 5, speed: 2, health: 4, jump: 2 },
       passive: 'Thick Scales: takes 10% less damage',
       special: { name: 'Tail Sweep', desc: 'Spins around, sweeping both sides with his tail. Jump over it!' },
@@ -798,17 +801,16 @@
 
   SF.ROSTER = ['kip', 'koko', 'kooka', 'croc'];
 
-  // Fighters coming in the next update (shown locked on the select screen).
+  // Fighters coming in a later update (shown locked on the select screen).
   SF.COMING_SOON = [
-    { name: 'Spike', full: 'Spike the Echidna', emoji: '🦔' },
-    { name: 'Dotty', full: 'Dotty the Platypus', emoji: '🦆' },
-    { name: 'Wombo', full: 'Wombo the Wombat', emoji: '🐻' },
-    { name: 'Dash', full: 'Dash the Emu', emoji: '🪶' },
     { name: 'Taz', full: 'Taz the Tassie Devil', emoji: '🌪️' },
     { name: 'Shelly', full: 'Shelly the Sea Turtle', emoji: '🐢' },
     { name: 'Lizzie', full: 'Lizzie the Frill-neck', emoji: '🦎' },
     { name: 'Cheeky', full: 'Cheeky the Cockatoo', emoji: '🦜' },
   ];
+
+  // Shared with the other roster files.
+  SF.FH = { leanAround, clipEll, baseMoves, withMoves };
 
   SF.HIT_WORDS = ['POW!', 'BONK!', 'WHACK!', 'BOOF!', 'THWACK!', 'CRIKEY!', 'BIFF!'];
   SF.KO_WORDS = ['STREWTH!', 'FAIR DINKUM!', 'CRIKEY!', 'RIPPER!', 'BONZA!', "G'DAY, MATE!"];

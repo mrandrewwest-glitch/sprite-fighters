@@ -94,6 +94,118 @@
     }
   }
 
+  // Snacks that drop into the arena. Grab one to power up!
+  const SNACKS = {
+    pie: { word: 'MEAT PIE! +HEALTH', color: '#8be15d' },
+    vegemite: { word: 'VEGEMITE POWER!', color: '#ffd24a' },
+    lamington: { word: 'SUGAR RUSH!', color: '#ff8ad8' },
+  };
+
+  class PowerUp {
+    constructor(type, x) {
+      this.type = type;
+      this.x = x;
+      this.y = -40;
+      this.t = 0;
+      this.landed = false;
+      this.isPowerUp = true;
+    }
+    update(m) {
+      this.t++;
+      if (!this.landed) {
+        this.y += 2.2;
+        if (this.y >= SF.GROUND - 24) {
+          this.y = SF.GROUND - 24;
+          this.landed = true;
+          this.t = 0;
+        }
+      } else if (this.t > 540) {
+        this.dead = true;
+      }
+      if (m.roundState !== 'fight') return;
+      const box = { x: this.x - 22, y: this.y - 22, w: 44, h: 44 };
+      for (const f of m.f) {
+        if (['ko', 'down', 'grabbed', 'ultCine'].includes(f.state) || f.sink > 0) continue;
+        if (SF.overlap(box, f.hurtbox())) {
+          this.apply(f, m);
+          this.dead = true;
+          break;
+        }
+      }
+    }
+    apply(f, m) {
+      if (this.type === 'pie') f.hp = Math.min(f.maxHp, f.hp + 15);
+      if (this.type === 'vegemite') f.meter = Math.min(100, f.meter + 50);
+      if (this.type === 'lamington') f.buff = { type: 'speed', t: 480 };
+      const s = SNACKS[this.type];
+      m.fx.text(s.word, this.x, this.y - 90, s.color, 30);
+      m.fx.spark(this.x, this.y, true, s.color);
+      m.sfx('ready');
+    }
+    draw(ctx) {
+      const D = SF.D;
+      if (this.landed && this.t > 420 && Math.floor(this.t / 6) % 2) return;
+      const bob = this.landed ? Math.sin(this.t * 0.12) * 4 : 0;
+      ctx.save();
+      ctx.translate(this.x, this.y + bob);
+      if (!this.landed) {
+        ctx.beginPath();
+        ctx.arc(0, -52, 34, Math.PI, 0);
+        ctx.closePath();
+        ctx.fillStyle = '#ff5a5f';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = D.OUT;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, -52, 34, Math.PI * 1.33, Math.PI * 1.66);
+        ctx.lineTo(0, -52);
+        ctx.fill();
+        D.line(ctx, -32, -52, -8, -14, 2, D.OUT);
+        D.line(ctx, 32, -52, 8, -14, 2, D.OUT);
+      } else {
+        const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 44);
+        g.addColorStop(0, 'rgba(255,255,200,0.7)');
+        g.addColorStop(1, 'rgba(255,255,200,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(-44, -44, 88, 88);
+      }
+      if (this.type === 'pie') {
+        D.ell(ctx, 0, 6, 24, 10, '#c98a3b');
+        D.ell(ctx, 0, -2, 22, 12, '#e8b560');
+        D.line(ctx, -8, -4, 8, -2, 2, '#b8782e');
+        D.line(ctx, -5, 2, 6, 4, 2, '#b8782e');
+        D.ell(ctx, 4, -12, 6, 3, '#e53935');
+      } else if (this.type === 'vegemite') {
+        SF.roundRect(ctx, -16, -18, 32, 34, 6);
+        ctx.fillStyle = '#3a1f10';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = D.OUT;
+        ctx.stroke();
+        SF.roundRect(ctx, -18, -24, 36, 9, 3);
+        ctx.fillStyle = '#ffd24a';
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#e53935';
+        ctx.fillRect(-16, -6, 32, 12);
+        ctx.fillStyle = '#ffd24a';
+        ctx.fillRect(-12, -3, 24, 6);
+      } else {
+        SF.roundRect(ctx, -18, -16, 36, 32, 6);
+        ctx.fillStyle = '#6b3a1e';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = D.OUT;
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 16; i++) ctx.fillRect(-15 + ((i * 7) % 30), -13 + ((i * 11) % 26), 2.5, 2.5);
+      }
+      ctx.restore();
+    }
+  }
+
   SF.Match = class {
     constructor(o) {
       this.o = o;
@@ -123,9 +235,6 @@
 
     sfx(n) {
       if (!this.o.silent) SF.Audio.play(n);
-    }
-    say(t) {
-      if (!this.o.silent) SF.Audio.say(t);
     }
     opponentOf(f) {
       return this.f[f.side === 0 ? 1 : 0];
@@ -162,6 +271,7 @@
       this.introT = 0;
       this.quotes = first && !this.o.silent;
       this.bearTimer = SF.rand(500, 900);
+      this.snackTimer = SF.rand(420, 720);
       this.koT = 0;
       this.result = null;
     }
@@ -169,7 +279,6 @@
     startCinematic(f) {
       this.cine = { f, t: 0 };
       this.sfx('ult');
-      this.say(f.def.ultimate.name.replace('...', ''));
     }
 
     // Returns 'hit', 'block' or 'miss'.
@@ -206,9 +315,13 @@
         def.vx = kbDir * (p.kb * 0.8 + 1.5);
         def.meter = Math.min(100, def.meter + 3);
         if (att && !p.noMeter) att.meter = Math.min(100, att.meter + 1.5);
+        if (def.def.prickly && att && !p.kbDir && Math.abs(att.x - def.x) < 160) {
+          att.hp = Math.max(1, att.hp - 2);
+          this.fx.text('OUCH!', att.x, att.y - att.def.height - 20, '#f1e3c0', 26);
+        }
         this.fx.blockSpark(cx - kbDir * 10, cy);
         this.sfx('block');
-        this.hitstop = Math.max(this.hitstop, 4);
+        this.hitstop = Math.max(this.hitstop, p.light ? 1 : 4);
         return 'block';
       }
 
@@ -217,6 +330,15 @@
       if (att && !p.noMeter && att.state !== 'ult') att.meter = Math.min(100, att.meter + dmg * 0.9);
       def.meter = Math.min(100, def.meter + dmg * 0.55);
 
+      const armored = def.state === 'attack' && def.move && def.move.armor && !p.knockdown && !p.big && !p.unblockable;
+      if (armored) {
+        this.fx.spark(cx, cy, false, '#c9a27c');
+        this.fx.text('TOUGH!', def.x, def.y - def.def.height - 20, '#c9a27c', 24);
+        this.sfx('block');
+        this.hitstop = Math.max(this.hitstop, 3);
+        if (def.hp <= 0) this.knockOut(def, kbDir);
+        return 'hit';
+      }
       if (!p.hold) {
         if (def.state === 'dizzy' && p.keepDizzy) {
           def.stun = Math.max(def.stun, 60);
@@ -247,10 +369,10 @@
       }
 
       this.fx.spark(cx, cy, !!p.big);
-      if (p.word || p.big || Math.random() < 0.3) this.fx.text(p.word || SF.pick(SF.HIT_WORDS), cx, cy - 60, '#ffe14a', p.big ? 44 : 30);
+      if (p.word || p.big || (!p.light && Math.random() < 0.3)) this.fx.text(p.word || SF.pick(SF.HIT_WORDS), cx, cy - 60, '#ffe14a', p.big ? 44 : 30);
       this.sfx(p.big ? 'bighit' : p.sfx || 'hit');
-      this.fx.shake(p.big ? 12 : 3);
-      this.hitstop = Math.max(this.hitstop, p.big ? 12 : p.hold ? 3 : 6);
+      this.fx.shake(p.big ? 12 : p.light ? 1 : 3);
+      this.hitstop = Math.max(this.hitstop, p.big ? 12 : p.light ? 1 : p.hold ? 3 : 6);
       if (def.hp <= 0) this.knockOut(def, kbDir);
       return 'hit';
     }
@@ -327,6 +449,13 @@
         }
       }
 
+      if (fighting && SF.settings.powerUps && !this.o.noSnacks && --this.snackTimer <= 0) {
+        this.snackTimer = SF.rand(720, 1080);
+        if (!this.entities.some((e) => e.isPowerUp)) {
+          this.addEntity(new PowerUp(SF.pick(Object.keys(SNACKS)), SF.rand(140, SF.W - 140)));
+        }
+      }
+
       this.roundLogic();
       this.updateCamera();
 
@@ -338,6 +467,9 @@
     push(a, b) {
       const skip = ['grabbed', 'ko', 'down'];
       if (skip.includes(a.state) || skip.includes(b.state) || a.noClamp || b.noClamp) return;
+      if (a.sink > 0 || b.sink > 0) return;
+      const passing = (f) => f.state === 'attack' && f.move && f.move.passThrough;
+      if (passing(a) || passing(b)) return;
       if (Math.abs(a.y - b.y) > 100) return;
       const minD = ((a.def.width + b.def.width) / 2) * 1.1;
       const dx = b.x - a.x;
@@ -391,12 +523,10 @@
           const txt = final ? 'FINAL ROUND' : 'ROUND ' + this.round;
           this.showBanner(txt, 55);
           this.sfx('gong');
-          this.say(final ? 'Final round!' : 'Round ' + this.round);
         }
         if (this.introT === off + 60) {
           this.showBanner('FIGHT!', 40, '#ff5a3c', 110);
           this.sfx('fight');
-          this.say('Fight!');
           this.roundState = 'fight';
           this.f.forEach((f) => f.setState('idle'));
         }
@@ -412,7 +542,6 @@
             this.timeUp = true;
             this.showBanner('TIME UP!', 80, '#ffd24a');
             this.sfx('gong');
-            this.say('Time up!');
             return;
           }
         }
@@ -424,7 +553,6 @@
           this.showBanner('K.O.!', 70, '#ff5a3c', 120);
           this.sfx('ko');
           this.fx.shake(14);
-          this.say(SF.pick(SF.KO_WORDS).replace('!', ''));
         }
         return;
       }
@@ -448,7 +576,7 @@
             this.wins[w]++;
             const done = this.wins[w] >= this.needed;
             this.showBanner(done ? wf.def.name + ' WINS!' : SF.pick(SF.KO_WORDS), 110, '#ffd24a', 72);
-            if (!this.o.silent && done) SF.Audio.play('win');
+            if (!this.o.silent) SF.Audio.music(done ? 'victory' : 'roundWin');
             const loser = this.f[1 - w];
             if (this.timeUp && loser.state !== 'ko') {
               loser.setState('dizzy');

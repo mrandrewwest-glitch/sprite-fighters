@@ -17,7 +17,12 @@ const out = process.argv[3] || '.';
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url);
   await page.waitForTimeout(1500);
-  const plan = { kip: [20, 60, 100, 128], koko: [30, 70, 88, 100], kooka: [40, 90, 130, 170], croc: [20, 60, 100, 140] };
+  const plan = {
+    kip: [20, 60, 100, 128], koko: [30, 70, 88, 130], kooka: [40, 90, 130, 170], croc: [20, 60, 100, 140],
+    spike: [30, 90, 120, 142], dotty: [30, 90, 118, 128], wombo: [30, 100, 118, 150], dash: [30, 85, 105, 125],
+  };
+  const only = process.argv[4] ? process.argv[4].split(',') : null;
+  if (only) Object.keys(plan).forEach((k) => !only.includes(k) && delete plan[k]);
   for (const id of Object.keys(plan)) {
     for (const [i, n] of plan[id].entries()) {
       await page.evaluate(({ id, n }) => {

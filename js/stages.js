@@ -517,8 +517,273 @@
     },
   };
 
-  SF.STAGES = { uluru, bondi, rainforest, harbour };
-  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour'];
+  // ------------------------------------------------------------- BILLABONG
+  const billabong = {
+    name: 'The Billabong', emoji: '🪷',
+    drawStatic(ctx) {
+      const rnd = SF.seeded(42);
+      ctx.fillStyle = grad(ctx, 0, 340, [[0, '#7cc7ee'], [1, '#fdf1c7']]);
+      ctx.fillRect(0, 0, W, 340);
+      ctx.fillStyle = '#9bb58a';
+      ctx.beginPath();
+      ctx.moveTo(0, 330);
+      for (let x = 0; x <= W; x += 30) ctx.lineTo(x, 300 + Math.sin(x * 0.012) * 18);
+      ctx.lineTo(W, 340);
+      ctx.lineTo(0, 340);
+      ctx.fill();
+      // river red gums with pale trunks
+      [[120, 1.1, -0.08], [300, 0.8, 0.06], [760, 1.2, 0.1], [900, 0.9, -0.05]].forEach(([x, sc, lean]) => {
+        ctx.save();
+        ctx.translate(x, 380);
+        ctx.rotate(lean);
+        ctx.fillStyle = '#e9e1d2';
+        ctx.beginPath();
+        ctx.moveTo(-10 * sc, 0);
+        ctx.quadraticCurveTo(-6 * sc, -120 * sc, -4 * sc, -200 * sc);
+        ctx.lineTo(6 * sc, -200 * sc);
+        ctx.quadraticCurveTo(8 * sc, -120 * sc, 12 * sc, 0);
+        ctx.fill();
+        ctx.strokeStyle = '#b9ab98';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        D.line(ctx, 0, -140 * sc, -40 * sc, -190 * sc, 7 * sc, '#e9e1d2');
+        D.line(ctx, 2, -120 * sc, 44 * sc, -170 * sc, 6 * sc, '#e9e1d2');
+        [[-40, -205, 42], [0, -230, 50], [44, -195, 40], [-10, -180, 34]].forEach(([lx, ly, r]) => {
+          ctx.fillStyle = SF.pick(['#6f9a57', '#5f8a4a', '#7fae63']);
+          ctx.beginPath();
+          ctx.ellipse(lx * sc, ly * sc, r * sc, r * 0.6 * sc, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      });
+      // water
+      ctx.fillStyle = grad(ctx, 338, 420, [[0, '#4a9bb8'], [1, '#2f7390']]);
+      ctx.beginPath();
+      ctx.moveTo(0, 345);
+      ctx.quadraticCurveTo(W / 2, 330, W, 345);
+      ctx.lineTo(W, 418);
+      ctx.lineTo(0, 418);
+      ctx.fill();
+      // lily pads
+      for (let i = 0; i < 9; i++) {
+        const x = 60 + i * 105 + rnd() * 30;
+        const y = 360 + rnd() * 45;
+        ctx.fillStyle = '#5c9c48';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 20, 6, 0, 0.3, Math.PI * 2);
+        ctx.lineTo(x, y);
+        ctx.fill();
+        if (i % 2 === 0) {
+          D.ell(ctx, x + 4, y - 4, 6, 4, '#ff8ad8', 0, false);
+          D.ell(ctx, x + 4, y - 5, 2.5, 2, '#ffe14a', 0, false);
+        }
+      }
+      // muddy bank
+      ctx.fillStyle = grad(ctx, 412, H, [[0, '#a07a4a'], [1, '#6b4a2a']]);
+      ctx.fillRect(0, 412, W, H - 412);
+      ctx.fillStyle = '#7fa35a';
+      ctx.fillRect(0, 410, W, 8);
+      for (let i = 0; i < 70; i++) {
+        ctx.fillStyle = `rgba(60,40,20,${0.15 + rnd() * 0.25})`;
+        ctx.beginPath();
+        ctx.ellipse(rnd() * W, 425 + rnd() * 110, 3 + rnd() * 4, 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // reeds
+      [[30, 14], [210, 8], [470, 6], [640, 10], [930, 12]].forEach(([x, n]) => {
+        for (let k = 0; k < n; k++) {
+          const rx = x + (k - n / 2) * 5;
+          const h = 50 + rnd() * 50;
+          D.line(ctx, rx, 418, rx + (rnd() - 0.5) * 16, 418 - h, 3, '#6f8f3a');
+          if (k % 3 === 0) D.ell(ctx, rx + 2, 418 - h + 8, 3.5, 10, '#7a4b25', 0, false);
+        }
+      });
+    },
+    drawAnim(ctx, t) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const k = ((t + i * 40) % 200) / 200;
+        ctx.globalAlpha = 1 - k;
+        ctx.beginPath();
+        ctx.ellipse(120 + i * 180, 375 + (i % 2) * 20, 8 + k * 40, 2 + k * 8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // jumping fish
+      const ft = t % 300;
+      if (ft < 40) {
+        const k = ft / 40;
+        const fx = 560 + k * 90;
+        const fy = 380 - Math.sin(k * Math.PI) * 60;
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.rotate(-Math.cos(k * Math.PI) * 0.8);
+        D.ell(ctx, 0, 0, 12, 6, '#f2a93b', 0, false);
+        D.poly(ctx, [-10, 0, -18, -6, -18, 6], '#f2a93b', false);
+        ctx.restore();
+      }
+      // dragonflies
+      for (let i = 0; i < 2; i++) {
+        const x = 480 + Math.sin(t * 0.017 + i * 3) * 380;
+        const y = 250 + Math.sin(t * 0.05 + i) * 50;
+        D.line(ctx, x - 8, y, x + 8, y, 3, '#2f7fd0');
+        ctx.fillStyle = 'rgba(200,240,255,0.7)';
+        const f = Math.sin(t * 0.8) * 3;
+        ctx.fillRect(x - 3, y - 7 - f, 3, 6);
+        ctx.fillRect(x + 1, y - 7 + f, 3, 6);
+      }
+    },
+  };
+
+  // ------------------------------------------------------------- OUTBACK DUNNY
+  const dunny = {
+    name: 'The Outback Dunny', emoji: '🚽',
+    drawStatic(ctx) {
+      const rnd = SF.seeded(77);
+      ctx.fillStyle = grad(ctx, 0, 400, [[0, '#2f8fe0'], [1, '#bfe6ff']]);
+      ctx.fillRect(0, 0, W, 400);
+      cloud(ctx, 150, 90, 0.9);
+      cloud(ctx, 620, 60, 0.7);
+      ctx.fillStyle = '#c96a3a';
+      ctx.beginPath();
+      ctx.moveTo(0, 390);
+      for (let x = 0; x <= W; x += 40) ctx.lineTo(x, 370 + Math.sin(x * 0.02) * 6 + rnd() * 6);
+      ctx.lineTo(W, 400);
+      ctx.fill();
+      ctx.fillStyle = grad(ctx, 395, H, [[0, '#d97b45'], [1, '#9e4a22']]);
+      ctx.fillRect(0, 395, W, H - 395);
+      for (let i = 0; i < 80; i++) {
+        ctx.fillStyle = `rgba(110,40,15,${0.15 + rnd() * 0.3})`;
+        ctx.fillRect(rnd() * W, 400 + rnd() * 140, 3, 2);
+      }
+      // fence
+      for (let x = 0; x < W; x += 60) {
+        ctx.fillStyle = '#8a6a4a';
+        ctx.fillRect(x, 360, 5, 40);
+      }
+      D.line(ctx, 0, 370, W, 370, 1.5, '#555');
+      D.line(ctx, 0, 384, W, 384, 1.5, '#555');
+      // water tank
+      ctx.fillStyle = '#b8c0c8';
+      ctx.fillRect(640, 300, 90, 95);
+      ctx.strokeStyle = '#8a939c';
+      ctx.lineWidth = 2;
+      for (let y = 308; y < 395; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(640, y);
+        ctx.lineTo(730, y);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#9aa3ad';
+      ctx.beginPath();
+      ctx.ellipse(685, 300, 45, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // windmill tower
+      ctx.strokeStyle = '#6b6b6b';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(820, 400);
+      ctx.lineTo(850, 180);
+      ctx.lineTo(880, 400);
+      ctx.moveTo(828, 340);
+      ctx.lineTo(872, 340);
+      ctx.moveTo(836, 280);
+      ctx.lineTo(864, 280);
+      ctx.moveTo(842, 230);
+      ctx.lineTo(858, 230);
+      ctx.stroke();
+      // the dunny
+      ctx.fillStyle = '#9aa3ad';
+      ctx.fillRect(90, 290, 90, 112);
+      ctx.strokeStyle = '#7d858e';
+      for (let x = 96; x < 180; x += 8) {
+        ctx.beginPath();
+        ctx.moveTo(x, 292);
+        ctx.lineTo(x, 400);
+        ctx.stroke();
+      }
+      D.poly(ctx, [80, 294, 135, 262, 190, 294], '#b33a2a');
+      SF.roundRect(ctx, 110, 312, 50, 88, 3);
+      ctx.fillStyle = '#6b4a2a';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = D.OUT;
+      ctx.stroke();
+      ctx.fillStyle = '#ffe9a8';
+      ctx.beginPath();
+      ctx.arc(135, 330, 8, Math.PI * 0.3, Math.PI * 1.7);
+      ctx.arc(139, 330, 7, Math.PI * 1.6, Math.PI * 0.4, true);
+      ctx.fill();
+      D.ell(ctx, 152, 360, 3, 3, '#ffd24a', 0, false);
+      // gum tree
+      ctx.fillStyle = '#d8cfc0';
+      ctx.fillRect(505, 230, 14, 170);
+      [[490, 220, 44], [530, 205, 50], [560, 230, 36], [470, 240, 30]].forEach(([x, y, r]) => {
+        ctx.fillStyle = SF.pick(['#6f9a57', '#5f8a4a']);
+        ctx.beginPath();
+        ctx.ellipse(x, y, r, r * 0.65, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      // Hills Hoist pole
+      D.line(ctx, 340, 400, 340, 250, 5, '#8a939c');
+    },
+    drawAnim(ctx, t) {
+      // windmill blades
+      ctx.save();
+      ctx.translate(850, 175);
+      ctx.rotate(t * 0.05);
+      for (let i = 0; i < 12; i++) {
+        ctx.rotate(Math.PI / 6);
+        ctx.fillStyle = i % 2 ? '#d8dde2' : '#b0b8c0';
+        ctx.fillRect(4, -4, 36, 8);
+      }
+      ctx.restore();
+      D.ell(ctx, 850, 175, 7, 7, '#6b6b6b');
+      // Hills Hoist spinning slowly with washing
+      const a = t * 0.01;
+      ctx.save();
+      ctx.translate(340, 250);
+      for (let i = 0; i < 4; i++) {
+        const ang = a + (i * Math.PI) / 2;
+        const ex = Math.cos(ang) * 90;
+        const ey = Math.sin(ang) * 12;
+        D.line(ctx, 0, 0, ex, ey, 3, '#8a939c');
+        const cols = ['#ff5a5f', '#4ab3ff', '#ffd24a', '#5ad17a'];
+        const sway = Math.sin(t * 0.08 + i) * 4;
+        ctx.fillStyle = cols[i];
+        ctx.fillRect(ex * 0.6 - 10 + sway, ey * 0.6, 20, 26);
+      }
+      ctx.restore();
+      // flies around the dunny
+      ctx.fillStyle = '#222';
+      for (let i = 0; i < 4; i++) {
+        const fx = 135 + Math.sin(t * 0.15 + i * 2) * 40;
+        const fy = 280 + Math.cos(t * 0.21 + i) * 25;
+        ctx.fillRect(fx, fy, 3, 3);
+      }
+      // tumbleweed
+      const tt = t % 700;
+      if (tt < 260) {
+        const x = -40 + tt * 4;
+        const y = 440 - Math.abs(Math.sin(tt * 0.1)) * 30;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(tt * 0.2);
+        ctx.strokeStyle = '#a8864f';
+        ctx.lineWidth = 2;
+        for (let k = 0; k < 6; k++) {
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 18, 10, k, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    },
+  };
+
+  SF.STAGES = { uluru, bondi, rainforest, harbour, billabong, dunny };
+  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour', 'billabong', 'dunny'];
 
   const cache = {};
   function staticCanvas(id) {

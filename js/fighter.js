@@ -49,6 +49,13 @@ SF.Fighter = class {
     this.walkCycle = 0;
     this.crouchBlock = false;
     this.wasReady = this.meter >= 100;
+    this.sink = 0;
+    this.buff = null;
+  }
+
+  // Walking speed, including the Lamington sugar rush.
+  spd() {
+    return this.def.speed * (this.buff && this.buff.type === 'speed' ? 1.35 : 1);
   }
 
   setState(s) {
@@ -111,6 +118,8 @@ SF.Fighter = class {
     this.stateTime++;
     if (this.invuln > 0) this.invuln--;
     if (this.buffer && ++this.buffer.t > 10) this.buffer = null;
+    if (this.buff && --this.buff.t <= 0) this.buff = null;
+    if (this.buff && this.anim % 4 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.4, '#ff8ad8');
     const inp = this.inp;
 
     switch (this.state) {
@@ -202,6 +211,10 @@ SF.Fighter = class {
     if (inp.down) {
       this.setState('crouch');
       this.vx *= 0.6;
+      if (this.def.crawler && dir !== 0) {
+        this.vx = dir * this.spd() * 0.6;
+        this.walkCycle += 0.3;
+      }
       if (this.def.napper && dir === 0) {
         this.napTime++;
         if (this.napTime > 60 && this.healPool > 0 && this.hp < this.maxHp) {
@@ -216,7 +229,7 @@ SF.Fighter = class {
       this.setState('walk');
       this.napTime = 0;
       const fwd = dir === this.facing;
-      this.vx = dir * this.def.speed * (fwd ? 1 : 0.72);
+      this.vx = dir * this.spd() * (fwd ? 1 : 0.72);
       this.walkCycle += this.def.walk === 'hop' ? 0.16 : 0.22;
     } else {
       this.setState('idle');
@@ -230,7 +243,7 @@ SF.Fighter = class {
   jump(inp) {
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     this.vy = -this.def.jump;
-    this.vx = dir * this.def.speed * 1.05;
+    this.vx = dir * this.spd() * 1.05;
     this.setState('jump');
     this.airJumps = this.def.doubleJump ? 1 : 0;
     this.m.sfx('jump');
@@ -257,7 +270,7 @@ SF.Fighter = class {
     }
     const dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     if (dir) {
-      const max = this.def.speed * 1.1;
+      const max = this.spd() * 1.1;
       this.vx = SF.clamp(this.vx + dir * 0.35, -max, max);
     }
   }
@@ -439,6 +452,12 @@ SF.Fighter = class {
         p.legBExt = 0.8;
         p.armF = this.guard ? 2.0 : 0.9;
         p.armB = this.guard ? 1.7 : 0.6;
+        if (this.def.crawler && Math.abs(this.vx) > 0.5) {
+          p.legF = 0.9 + Math.sin(this.walkCycle) * 0.4;
+          p.legB = -0.5 - Math.sin(this.walkCycle) * 0.4;
+          p.armF = 1.2 + Math.sin(this.walkCycle) * 0.3;
+          p.lean = 0.35;
+        }
         if (this.def.napper && this.napTime > 60) {
           p.face = 'sleepy';
           p.head = 0.25;
@@ -567,6 +586,38 @@ SF.Fighter = class {
               p.sx = 1.1;
             }
             break;
+          case 'ball':
+            p.ball = fr * 0.45 * (fr < 6 ? 0.3 : 1);
+            break;
+          case 'slap':
+            p.lean = fr < 10 ? -0.2 : 0.45 * kk;
+            p.head = fr < 10 ? -0.3 : 0.4;
+            p.armF = fr < 10 ? 2.4 : 1.3;
+            p.beak = 0.5;
+            p.tail = fr < 10 ? 0.2 : -0.3;
+            break;
+          case 'bumbump': {
+            const run = Math.sin(fr * 0.6);
+            p.flip = -1;
+            p.lean = -0.25;
+            p.head = -0.2;
+            p.legF = run * 0.6;
+            p.legB = -run * 0.6;
+            p.armF = 1.4;
+            p.armB = 1.2;
+            p.bob = -Math.abs(run) * 4;
+            break;
+          }
+          case 'zoom': {
+            const run = Math.sin(fr * 0.9);
+            p.lean = 0.55;
+            p.head = 0.5;
+            p.legF = run * 1.1;
+            p.legB = -run * 1.1;
+            p.armF = -0.8;
+            p.bob = -Math.abs(run) * 6;
+            break;
+          }
           case 'tailspin': {
             const a = SF.clamp((fr - 6) / 20, 0, 1) * Math.PI * 2;
             p.flip = Math.cos(a) >= 0 ? 1 : -1;
@@ -744,6 +795,47 @@ SF.Fighter = class {
         p.beak = 0.02;
         p.face = 'happy';
         break;
+      case 'spike_ball':
+        p.ball = t * 0.45;
+        break;
+      case 'dotty_dive':
+        p.lean = 0.6;
+        p.armF = 2.8;
+        p.armB = 2.6;
+        p.head = 0.4;
+        break;
+      case 'dotty_rise':
+        p.lean = -0.1;
+        p.armF = 2.8;
+        p.armB = 2.6;
+        p.beak = 0.6;
+        p.face = 'laugh';
+        p.sy = 1.1;
+        break;
+      case 'wombo_squat': {
+        const shake = Math.sin(t * 1.3) * 1.5;
+        p.face = 'grumpy';
+        p.sy = 0.82;
+        p.sx = 1.12;
+        p.bob = shake;
+        p.legF = 0.8;
+        p.legB = -0.8;
+        p.armF = 1.2;
+        p.armB = 1.0;
+        break;
+      }
+      case 'dash_whistle':
+        p.head = -0.4;
+        p.beak = 0.5;
+        p.face = 'laugh';
+        p.armF = 2.5;
+        break;
+      case 'dash_cheer':
+        p.face = 'happy';
+        p.bob = -Math.abs(Math.sin(t * 0.3)) * 10;
+        p.armF = 2.8;
+        p.head = -0.2;
+        break;
       case 'croc_recover':
       default:
         p.armF = 0.8;
@@ -802,9 +894,16 @@ SF.Fighter = class {
       ctx.rotate(this.spin);
       ctx.translate(0, this.def.height / 2);
     }
+    if (this.sink > 0) {
+      ctx.beginPath();
+      ctx.rect(-200, -400, 400, 400);
+      ctx.clip();
+      ctx.translate(0, this.sink * (this.def.height + 20));
+    }
     ctx.translate(0, p.bob);
     ctx.scale(p.sx, p.sy);
-    this.def.draw(ctx, p, this.pal);
+    if (p.ball != null && this.def.drawBall) this.def.drawBall(ctx, p, this.pal);
+    else this.def.draw(ctx, p, this.pal);
     ctx.restore();
 
     if (this.state === 'dizzy' || (this.state === 'ko' && this.onGround())) {

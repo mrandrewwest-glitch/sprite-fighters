@@ -2,7 +2,7 @@
 
 A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, or battle through **Arcade** mode. It runs in the browser on computers, iPads and phones, with no install needed.
 
-## Fighters (4 of 12 so far)
+## Fighters (8 of 12 so far)
 
 | Fighter | Style | ⭐ Special | ⚡ Ultimate |
 |---|---|---|---|
@@ -10,10 +10,14 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 | 🐨 **Koko the Koala** | Sleepy tank. Crouch still to power-nap and heal a little | Eucalyptus Leaf Toss | **Gumtree Grumble**: a giant gum tree drops on the opponent |
 | 🐦 **Kooka the Kookaburra** | Aerial ace. Double jump and slow fall | Dive-Bomb Peck (works in the air) | **Laugh Attack**: a laugh that makes foes dizzy, then three swoops |
 | 🐊 **Captain Croc** | Grappler. Takes less damage | Tail Sweep (hits both sides) | **Death Roll... of Fun!**: an unblockable grab, roll and throw |
+| 🦔 **Spike the Echidna** | Prickly defender. Attackers get pricked when he blocks | Spiky Ball Roll | **Quill Storm**: hovers in a spinning ball firing quills, then a quill burst |
+| 🦆 **Dotty the Platypus** | Tricky swimmer. Can crawl while crouching | Bill Slap Splash (a ground wave that trips) | **Billabong Blast**: dives underground, erupts as a geyser, then bill-slaps in mid-air |
+| 🟫 **Wombo the Wombat** | Heavy bruiser. Bum Bump powers through small hits | Bum Bump | **Cube Crusher**: giant square wombat poos rain from the sky |
+| 🪶 **Dash the Emu** | Speedster with extra-long kicks | Zoomie Dash (runs straight through the opponent) | **Emu Stampede**: a whole mob of emus charges across the screen |
 
-Still to come: Spike the Echidna, Dotty the Platypus, Wombo the Wombat, Dash the Emu, Taz the Tassie Devil, Shelly the Sea Turtle, Lizzie the Frill-neck and Cheeky the Cockatoo.
+Still to come: Taz the Tassie Devil, Shelly the Sea Turtle, Lizzie the Frill-neck and Cheeky the Cockatoo.
 
-**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy and Sydney Harbour Night.
+**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong and The Outback Dunny.
 
 ## How to play
 
@@ -21,7 +25,10 @@ Still to come: Spike the Echidna, Dotty the Platypus, Wombo the Wombat, Dash the
 - 👊 Punch (fast), 🦶 Kick (strong). Hold down for low attacks; a low kick trips your opponent.
 - ⭐ Special: each fighter's signature move.
 - ⚡ **Hard Yakka meter**: fills when you hit, get hit or block. **Hold ⚡** to charge it faster, but you can't move or block while charging. When it glows gold, **tap ⚡** to unleash your **Ultimate**.
-- 🐨 Watch out for **Drop Bears** falling from the sky. You can switch them off in Settings.
+- 🥧 **Power-up snacks** parachute into the arena. Race to grab them! **Meat Pie** restores health, **Vegemite** fills half your ⚡ meter, and a **Lamington** gives a sugar rush of extra speed.
+- 🐨 Watch out for **Drop Bears** falling from the sky.
+- 🎺 Winning a round plays a jingle, and winning the match plays a victory fanfare.
+- Snacks, Drop Bears and music can each be switched off in Settings.
 
 | | Player 1 | Player 2 |
 |---|---|---|
@@ -59,15 +66,16 @@ Opening `index.html` directly also works. The offline and home-screen install fe
 index.html          page + menu screens
 css/style.css       menus, touch controls, responsive scaling
 js/util.js          constants, helpers, saved settings
-js/audio.js         synthesised sound effects + announcer voice
+js/audio.js         synthesised sound effects + victory music
 js/input.js         keyboard, gamepad and touch controls
 js/draw.js          cartoon drawing helpers
-js/fighters.js      the roster: artwork, moves, specials, ultimates
-js/stages.js        the four stages
+js/fighters.js      roster pack 1 (Kip, Koko, Kooka, Croc) + shared move helpers
+js/fighters2.js     roster pack 2 (Spike, Dotty, Wombo, Dash)
+js/stages.js        the six stages
 js/effects.js       particles, pop-up words, screen shake
 js/fighter.js       fighter state machine, physics and animation
 js/ai.js            CPU opponent and difficulty levels
-js/game.js          a match: rounds, hits, Drop Bears, HUD
+js/game.js          a match: rounds, hits, Drop Bears, power-up snacks, HUD
 js/ui.js            menus, game flow and main loop
 sw.js               offline support
 tools/              headless test and screenshot scripts
@@ -75,7 +83,7 @@ tools/              headless test and screenshot scripts
 
 ### Adding a new fighter
 
-Add an entry to `SF.FIGHTERS` in `js/fighters.js` with a `draw` function, stats, a `special` move and an `ult` object (`start` and `update`). Then add its id to `SF.ROSTER` and remove it from `SF.COMING_SOON`.
+Add an entry to `SF.FIGHTERS` (see `js/fighters2.js` for an example) with a `draw` function, stats, a `special` move and an `ult` object (`start` and `update`). Then add its id to `SF.ROSTER` and remove it from `SF.COMING_SOON`.
 
 ### Tests
 
@@ -85,4 +93,5 @@ With the game served on port 8123:
 node tools/smoke-test.js http://localhost:8123/ /tmp    # every matchup CPU vs CPU + menu flow
 node tools/ult-shots.js http://localhost:8123/ /tmp     # screenshots of every special/ultimate
 node tools/device-shots.js http://localhost:8123/ /tmp  # phone / iPad touch layouts
+node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates per fighter
 ```

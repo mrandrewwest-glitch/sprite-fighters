@@ -147,43 +147,87 @@ SF.Audio = (() => {
     }
   }
 
-  let voice = null;
-  function pickVoice() {
-    try {
-      const vs = speechSynthesis.getVoices();
-      voice =
-        vs.find((v) => v.lang === 'en-AU') ||
-        vs.find((v) => v.lang && v.lang.startsWith('en-GB')) ||
-        vs.find((v) => v.lang && v.lang.startsWith('en')) ||
-        null;
-    } catch (e) {
-      voice = null;
-    }
+  // ---------- victory music ----------
+  // Notes are [pitch, beats]; pitch like 'C5', or null for a rest.
+  const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  function freq(n) {
+    const sharp = n[1] === '#' ? 1 : 0;
+    const oct = parseInt(n.slice(1 + sharp), 10);
+    return 440 * Math.pow(2, (NOTE[n[0]] + sharp + (oct - 4) * 12 - 9) / 12);
   }
-  if ('speechSynthesis' in window) {
-    pickVoice();
-    try {
-      speechSynthesis.onvoiceschanged = pickVoice;
-    } catch (e) {
-      /* not supported */
+
+  function seq(notes, beat, start, o) {
+    let t = start;
+    notes.forEach(([n, b]) => {
+      if (n) tone(freq(n), Math.max(0.06, b * beat * 0.92), Object.assign({ delay: t }, o));
+      t += b * beat;
+    });
+    return t;
+  }
+
+  function drums(beats, beat, start) {
+    for (let i = 0; i < beats; i++) {
+      const t = start + i * beat;
+      if (i % 2 === 0) tone(110, 0.15, { type: 'sine', vol: 0.35, slide: 45, delay: t });
+      else noise(0.08, { vol: 0.18, freq: 5000, filter: 'highpass', delay: t });
+      noise(0.03, { vol: 0.06, freq: 8000, filter: 'highpass', delay: t + beat / 2 });
     }
   }
 
-  function say(text) {
-    if (!SF.settings.voice || !SF.settings.sound || !('speechSynthesis' in window)) return;
+  const TUNES = {
+    // Quick "you won the round!" jingle.
+    roundWin() {
+      const b = 0.11;
+      seq([['C5', 1], ['E5', 1], ['G5', 1], ['C6', 3]], b, 0, { type: 'square', vol: 0.09 });
+      seq([['E4', 1], ['G4', 1], ['C5', 1], ['E5', 3]], b, 0, { type: 'triangle', vol: 0.08 });
+      seq([['C3', 3], ['C3', 3]], b, 0, { type: 'triangle', vol: 0.18 });
+    },
+    // Big fanfare for winning the match.
+    victory() {
+      const b = 0.14;
+      const lead = [
+        ['G4', 1], ['C5', 1], ['E5', 1], ['G5', 2], ['E5', 1], ['G5', 4],
+        ['A5', 1], ['G5', 1], ['F5', 1], ['E5', 1], ['D5', 2], ['E5', 1], ['C5', 5],
+        ['G5', 1], ['A5', 1], ['B5', 1], ['C6', 6],
+      ];
+      const harmony = [
+        ['E4', 1], ['G4', 1], ['C5', 1], ['E5', 2], ['C5', 1], ['E5', 4],
+        ['F5', 1], ['E5', 1], ['D5', 1], ['C5', 1], ['B4', 2], ['C5', 1], ['G4', 5],
+        ['E5', 1], ['F5', 1], ['G5', 1], ['E5', 6],
+      ];
+      const bass = [
+        ['C3', 2], ['G2', 2], ['C3', 2], ['G2', 2], ['F2', 2], ['G2', 2], ['C3', 2], ['G2', 2],
+        ['F2', 1], ['G2', 1], ['G2', 1], ['C3', 6],
+      ];
+      seq(lead, b, 0, { type: 'square', vol: 0.085 });
+      seq(harmony, b, 0, { type: 'triangle', vol: 0.07 });
+      seq(bass, b, 0, { type: 'triangle', vol: 0.2 });
+      drums(24, b, 0);
+      noise(0.9, { vol: 0.15, freq: 7000, filter: 'highpass', delay: 25 * b });
+    },
+    // Extra-long celebration for becoming Arcade Champion.
+    champion() {
+      TUNES.victory();
+      const b = 0.14;
+      const s = 32 * b;
+      seq([['C5', 1], ['E5', 1], ['G5', 1], ['C6', 1], ['G5', 1], ['C6', 1], ['E6', 2], ['D6', 1], ['E6', 1], ['C6', 1], ['D6', 1], ['E6', 6]], b, s, { type: 'square', vol: 0.085 });
+      seq([['C3', 2], ['E3', 2], ['G2', 2], ['C3', 2], ['G2', 2], ['C3', 6]], b, s, { type: 'triangle', vol: 0.2 });
+      drums(16, b, s);
+    },
+  };
+
+  let lastTune = 0;
+  function music(name) {
+    if (!SF.settings.sound || !SF.settings.music || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    if (now - lastTune < 0.5) return;
+    lastTune = now;
     try {
-      const u = new SpeechSynthesisUtterance(text);
-      if (voice) u.voice = voice;
-      u.lang = voice ? voice.lang : 'en-AU';
-      u.rate = 1.05;
-      u.pitch = 1.1;
-      u.volume = 0.9;
-      speechSynthesis.cancel();
-      speechSynthesis.speak(u);
+      if (TUNES[name]) TUNES[name]();
     } catch (e) {
-      /* speech not available */
+      /* ignore audio glitches */
     }
   }
 
-  return { unlock, play, say };
+  return { unlock, play, music };
 })();

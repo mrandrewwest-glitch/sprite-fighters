@@ -110,7 +110,7 @@
     if (f.step === 'p1') {
       f.p1 = id;
       if (f.mode === 'arcade') {
-        f.ladder = SF.ROSTER.filter((x) => x !== id).sort(() => Math.random() - 0.5);
+        f.ladder = SF.ROSTER.filter((x) => x !== id).sort(() => Math.random() - 0.5).slice(0, 5);
         f.idx = 0;
         return startArcadeFight();
       }
@@ -139,7 +139,6 @@
     if (f.mode === 'arcade') sub = `Fight ${f.idx + 1} of ${f.ladder.length}<br>` + sub;
     $('#vs-stage').innerHTML = sub;
     SF.Audio.play('gong');
-    SF.Audio.say(SF.FIGHTERS[f.p1].full + ' versus ' + SF.FIGHTERS[f.p2].full);
     clearTimeout(ui.vsTimer);
     ui.vsTimer = setTimeout(beginMatch, 2600);
   }
@@ -188,7 +187,7 @@
           title = '🏆 ARCADE CHAMPION! 🏆';
           quote = `${SF.FIGHTERS[f.p1].full} beat everyone on ${f.diff.toUpperCase()}! Bonza!`;
           match.fx.confetti();
-          SF.Audio.say('Arcade champion! Bonza!');
+          setTimeout(() => SF.Audio.music('champion'), 300);
           buttons.push(['🔁 Play Arcade Again', 'arcade-again'], ['🏠 Main Menu', 'quit']);
         } else {
           buttons.push([`▶ Next Fight (${f.idx + 1}/${f.ladder.length})`, 'arcade-next'], ['🏠 Main Menu', 'quit']);
@@ -338,8 +337,9 @@
   // ------------------------------------------------------------ settings
   const SETTINGS = [
     { key: 'sound', label: '🔊 Sound', vals: [true, false], names: ['On', 'Off'] },
-    { key: 'voice', label: '🗣️ Announcer voice', vals: [true, false], names: ['On', 'Off'] },
+    { key: 'music', label: '🎺 Victory music', vals: [true, false], names: ['On', 'Off'] },
     { key: 'dropBears', label: '🐨 Drop Bears', vals: [true, false], names: ['On', 'Off'] },
+    { key: 'powerUps', label: '🥧 Power-up snacks', vals: [true, false], names: ['On', 'Off'] },
     { key: 'rounds', label: '🥊 Rounds', vals: [1, 3, 5], names: ['1 round', 'Best of 3', 'Best of 5'] },
     { key: 'timer', label: '⏱️ Round timer', vals: [60, 99, 0], names: ['60 seconds', '99 seconds', 'No timer'] },
     { key: 'touch', label: '📱 Touch buttons', vals: ['auto', 'on', 'off'], names: ['Auto', 'Always', 'Off'] },
@@ -409,7 +409,7 @@
       case 'arcade-next':
         return startArcadeFight();
       case 'arcade-again':
-        ui.flow.ladder = ui.flow.ladder.sort(() => Math.random() - 0.5);
+        ui.flow.ladder = SF.ROSTER.filter((x) => x !== ui.flow.p1).sort(() => Math.random() - 0.5).slice(0, 5);
         ui.flow.idx = 0;
         return startArcadeFight();
     }
