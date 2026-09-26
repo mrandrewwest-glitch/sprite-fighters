@@ -343,3 +343,25 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
 #touch.table .tbtn { font-size: min(6.5vmin, 36px); }
 #touch.table .pad-tag { bottom: calc(min(26vmin, 160px) + 3vmin); left: 4vmin; }
 #wrap.table-mode #pause-btn { top: 50%; left: calc(var(--u) * 26); transform: translateY(-50%); }
+
+/* 4-player party on one tablet: each player gets half an edge. */
+#touch.quad .pad-rot { position: absolute; inset: 0; transform: rotate(180deg); pointer-events: none; }
+#touch.quad .qpad { position: absolute; bottom: 0; width: 50%; height: min(30vmin, 170px); pointer-events: none; }
+#touch.quad .q-left { left: 0; }
+#touch.quad .q-right { right: 0; }
+#touch.quad .stick { width: min(22vmin, 130px); height: min(22vmin, 130px); left: max(2vmin, env(safe-area-inset-left)); bottom: 2vmin; }
+#touch.quad .btns { width: min(26vmin, 150px); height: min(26vmin, 150px); right: 3vmin; bottom: 1vmin; }
+#touch.quad .tbtn { font-size: min(5.5vmin, 28px); }
+#touch.quad .qtag { position: absolute; left: calc(min(22vmin, 130px) + 5vmin); bottom: 2vmin; font-size: 4vmin; -webkit-text-stroke: 1px #000; opacity: 0.85; }
+
+/* ---------- 4-player party setup ---------- */
+.btn.party-btn { background: linear-gradient(#ffe0f4, #ff8ad8); }
+.party-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 14); margin-top: calc(var(--u) * 6); }
+.party-slot { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 6); width: calc(var(--u) * 200); padding: calc(var(--u) * 8); border: calc(var(--u) * 3) solid var(--ink); border-radius: calc(var(--u) * 14); background: rgba(0, 0, 0, 0.3); }
+.party-slot .slot-tag { font-size: calc(var(--u) * 26); -webkit-text-stroke: 1px var(--ink); text-shadow: 0 calc(var(--u) * 2) 0 var(--ink); }
+.party-slot .pick { padding: 0; width: calc(var(--u) * 170); height: calc(var(--u) * 150); background: linear-gradient(#ffe7a8, #ff9d5c); }
+.party-slot .pick canvas { width: 100%; height: 100%; display: block; }
+.party-slot .slot-name { font-size: calc(var(--u) * 18); }
+.party-slot .btn { font-size: calc(var(--u) * 16); padding: calc(var(--u) * 5) calc(var(--u) * 12); }
+.party-slot.cpu { opacity: 0.9; }
+.party-slot .who.human { background: linear-gradient(#b7f5a0, #4fcf45); }

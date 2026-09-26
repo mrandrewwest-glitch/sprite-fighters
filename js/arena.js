@@ -16,6 +16,14 @@
   };
 
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  SF.SLOT_COLORS = ['#ff6b6b', '#4ab3ff', '#5ad17a', '#ffd24a'];
+  // Four-player seats: P1 bottom-left, P2 top-right, P3 bottom-right, P4 top-left.
+  const SEATS = [
+    { x: 200, y: 410, rot: 0, hx: 0.25, hy: 1 },
+    { x: 760, y: 170, rot: Math.PI, hx: 0.75, hy: 0 },
+    { x: 760, y: 410, rot: 0, hx: 0.74, hy: 1 },
+    { x: 200, y: 170, rot: Math.PI, hx: 0.26, hy: 0 },
+  ];
   const norm = (x, y) => {
     const l = Math.hypot(x, y) || 1;
     return { x: x / l, y: y / l };
@@ -39,12 +47,20 @@
 
     reset() {
       const t = this.m.o.table;
-      this.x = t ? W / 2 + (this.side ? 40 : -40) : this.side ? 700 : 260;
-      this.y = t ? (this.side ? 140 : 420) : 290;
+      if (this.m.f4) {
+        const seat = SEATS[this.side];
+        this.x = seat.x;
+        this.y = seat.y;
+        this.aim = norm(W / 2 - seat.x, H / 2 - seat.y);
+        this.facing = this.aim.x > 0 ? 1 : -1;
+      } else {
+        this.x = t ? W / 2 + (this.side ? 40 : -40) : this.side ? 700 : 260;
+        this.y = t ? (this.side ? 140 : 420) : 290;
+        this.aim = t ? { x: 0, y: this.side ? 1 : -1 } : { x: this.side ? -1 : 1, y: 0 };
+        this.facing = this.side ? -1 : 1;
+      }
       this.z = 0;
       this.vx = this.vy = 0;
-      this.aim = t ? { x: 0, y: this.side ? 1 : -1 } : { x: this.side ? -1 : 1, y: 0 };
-      this.facing = this.side ? -1 : 1;
       this.hp = this.maxHp;
       this.dispHp = this.maxHp;
       this.state = 'intro';
@@ -104,8 +120,9 @@
       if (Math.abs(d.x) > 0.2) this.facing = d.x > 0 ? 1 : -1;
     }
 
-    update(opp) {
+    update() {
       const m = this.m;
+      const foes = m.foesOf(this);
       this.anim++;
       this.st++;
       if (this.invuln > 0) this.invuln--;
@@ -119,12 +136,12 @@
         case 'idle':
         case 'run':
         case 'charge':
-          this.neutral(opp);
+          this.neutral();
           break;
         case 'punch':
           this.vx *= 0.7;
           this.vy *= 0.7;
-          if (this.st >= 5 && this.st <= 8) this.melee(opp, 'p' + this.moveId, 78, 0.45, { dmg: 7, kb: 7, stun: 16 });
+          if (this.st >= 5 && this.st <= 8) foes.forEach((o) => this.melee(o, 'p' + this.moveId, 78, 0.45, { dmg: 7, kb: 7, stun: 16 }));
           if (this.st >= 18) this.setState('idle');
           break;
         case 'dash':
@@ -139,9 +156,11 @@
           if (this.st >= 2 && this.st <= 12) {
             const hx = this.x + this.aim.x * 18;
             const hy = this.y + this.aim.y * 18;
-            if (Math.hypot(opp.x - hx, opp.y - hy) < 40 + R) {
-              m.hit(this, opp, { id: 'd' + this.moveId, dmg: 9, kb: 11, stun: 22, knockdown: true }, this.x, this.y);
-            }
+            foes.forEach((o) => {
+              if (Math.hypot(o.x - hx, o.y - hy) < 40 + R) {
+                m.hit(this, o, { id: 'd' + this.moveId, dmg: 9, kb: 11, stun: 22, knockdown: true }, this.x, this.y);
+              }
+            });
           }
           if (this.st >= 24) this.setState('idle');
           break;
@@ -179,7 +198,7 @@
           break;
         case 'ult':
           this.ultFrame++;
-          if (ULTS[this.def.id](this, opp, m, this.ultFrame)) this.endUlt();
+          if (ULTS[this.def.id](this, this.ult.target, m, this.ultFrame)) this.endUlt();
           break;
         case 'intro':
         case 'victory':
@@ -204,7 +223,7 @@
       this.wasReady = ready;
     }
 
-    neutral(opp) {
+    neutral() {
       const d = this.dir();
       if (d) this.setAim(d);
       const b = this.buffer ? this.buffer.a : null;
@@ -267,7 +286,7 @@
     beginUlt() {
       this.ultSeq++;
       this.ultFrame = 0;
-      this.ult = { vulnerable: false };
+      this.ult = { vulnerable: false, target: this.m.nearestFoe(this) };
       this.setState('ult');
     }
 
@@ -556,10 +575,11 @@
           if (f.state !== 'ko') m.fx.text('CATCH!', f.x, f.y - 80, '#fff', 18);
         }
       }
-      const opp = m.opponentOf(f);
-      if (Math.hypot(opp.x - this.x, opp.y - this.y) < R + 16) {
-        const r = m.hit(f, opp, { id: 'r' + this.id + this.phase, dmg: 10, kb: 9, stun: 18, word: 'THWACK!' }, this.x, this.y);
-        if (r === 'hit') this.turnBack();
+      for (const opp of m.foesOf(f)) {
+        if (Math.hypot(opp.x - this.x, opp.y - this.y) < R + 16) {
+          const r = m.hit(f, opp, { id: 'r' + this.id + this.phase, dmg: 10, kb: 9, stun: 18, word: 'THWACK!' }, this.x, this.y);
+          if (r === 'hit') this.turnBack();
+        }
       }
     }
     draw(ctx) {
@@ -598,9 +618,10 @@
       this.y += this.vy;
       if (--this.life <= 0) this.dead = true;
       for (const o of m.obstacles) if (!o.flat && Math.hypot(this.x - o.x, this.y - o.y) < o.r) this.dead = true;
-      const opp = m.opponentOf(this.owner);
-      if (!this.dead && Math.hypot(opp.x - this.x, opp.y - this.y) < R + 10) {
-        if (m.hit(this.owner, opp, Object.assign({ id: 's' + this.id }, this.props), this.x, this.y) === 'hit') this.dead = true;
+      for (const opp of m.foesOf(this.owner)) {
+        if (!this.dead && Math.hypot(opp.x - this.x, opp.y - this.y) < R + 10) {
+          if (m.hit(this.owner, opp, Object.assign({ id: 's' + this.id }, this.props), this.x, this.y) === 'hit') this.dead = true;
+        }
       }
     }
     draw(ctx) {
@@ -613,7 +634,7 @@
     constructor(owner, o) {
       Object.assign(this, { owner, t: -(o.delay || 0), warn: 34, track: 22, phase: 'warn', alpha: 1 }, o);
       this.id = 'k' + seq++;
-      this.target = owner.m.opponentOf(owner);
+      this.target = owner.ult && owner.ult.target ? owner.ult.target : owner.m.nearestFoe(owner);
       this.x = this.target.x + (o.dx || 0);
       this.y = this.target.y + (o.dy || 0);
     }
@@ -639,10 +660,11 @@
         if (this.ft >= 10) {
           this.phase = 'land';
           this.lt = 0;
-          const o = this.target;
-          if (Math.hypot(o.x - this.x, o.y - this.y) < this.radius + R) {
-            m.hit(this.owner, o, Object.assign({ id: this.id, word: this.word }, this.props), this.x, this.y);
-          }
+          m.foesOf(this.owner).forEach((o) => {
+            if (Math.hypot(o.x - this.x, o.y - this.y) < this.radius + R) {
+              m.hit(this.owner, o, Object.assign({ id: this.id, word: this.word }, this.props), this.x, this.y);
+            }
+          });
           m.fx.shake(this.big ? 14 : 5);
           m.sfx(this.kind === 'geyser' ? 'splash' : this.big ? 'boom' : 'stomp');
           m.fx.dust(this.x, this.y, this.big);
@@ -734,21 +756,25 @@
     update(m) {
       this.t++;
       this.x += this.dir * (this.kind === 'wave' ? 11 : 13);
-      const o = m.opponentOf(this.owner);
+      const foes = m.foesOf(this.owner);
       if (this.kind === 'wave') {
-        if (Math.abs(o.x - this.x) < 70) {
-          m.hit(this.owner, o, { id: this.id, dmg: 20, kb: 14, stun: 30, knockdown: true, big: true, word: 'SPLASH!', kbDir: { x: this.dir, y: 0 } }, this.x, o.y);
-        }
+        foes.forEach((o) => {
+          if (Math.abs(o.x - this.x) < 70) {
+            m.hit(this.owner, o, { id: this.id, dmg: 20, kb: 14, stun: 30, knockdown: true, big: true, word: 'SPLASH!', kbDir: { x: this.dir, y: 0 } }, this.x, o.y);
+          }
+        });
       } else {
         this.emus.forEach((e, i) => {
           const ex = this.x - this.dir * e.off;
-          if (Math.abs(o.x - ex) < 34 && Math.abs(o.y - e.y) < 40) {
-            const last = i === this.emus.length - 1;
-            m.hit(this.owner, o, {
-              id: this.id + i, dmg: last ? 8 : 3.5, kb: last ? 12 : 5, stun: 26, knockdown: last, big: last, light: !last,
-              kbDir: { x: this.dir, y: 0 },
-            }, ex, e.y);
-          }
+          foes.forEach((o) => {
+            if (Math.abs(o.x - ex) < 34 && Math.abs(o.y - e.y) < 40) {
+              const last = i === this.emus.length - 1;
+              m.hit(this.owner, o, {
+                id: this.id + i, dmg: last ? 8 : 3.5, kb: last ? 12 : 5, stun: 26, knockdown: last, big: last, light: !last,
+                kbDir: { x: this.dir, y: 0 },
+              }, ex, e.y);
+            }
+          });
         });
         if (this.t % 5 === 0) m.fx.dust(this.x - this.dir * 30, this.y, false);
       }
@@ -802,16 +828,18 @@
   // Kooka's laugh ring.
   class Ring {
     constructor(owner, props, color) {
-      Object.assign(this, { owner, props, color, r: 10, t: 0, x: owner.x, y: owner.y - 30, tested: false });
+      Object.assign(this, { owner, props, color, r: 10, t: 0, x: owner.x, y: owner.y - 30, tested: new Set() });
     }
     update(m) {
       this.t++;
       this.r += 16;
-      const o = m.opponentOf(this.owner);
-      if (!this.tested && Math.hypot(o.x - this.x, o.y - 30 - this.y) < this.r) {
-        this.tested = true;
-        this.result = m.hit(this.owner, o, Object.assign({ id: 'ring' + this.t }, this.props), this.x, this.y);
-      }
+      m.foesOf(this.owner).forEach((o) => {
+        if (!this.tested.has(o) && Math.hypot(o.x - this.x, o.y - 30 - this.y) < this.r) {
+          this.tested.add(o);
+          const r = m.hit(this.owner, o, Object.assign({ id: 'ring' }, this.props), this.x, this.y);
+          if (this.owner.ult && o === this.owner.ult.target) this.result = r;
+        }
+      });
       if (this.r > 1100) this.dead = true;
     }
     draw(ctx) {
@@ -883,7 +911,9 @@
         m.sfx('boom');
         m.fx.shockwave(f.x, f.y);
         m.fx.text('BOOMER BOUNCE!', f.x, f.y - 120, '#ffcf3f', 34);
-        if (dist(f, o) < 130 + R) m.hit(f, o, { id: 'quake', dmg: 24, kb: 12, stun: 30, knockdown: true, big: true }, f.x, f.y);
+        m.foesOf(f).forEach((e) => {
+          if (dist(f, e) < 130 + R) m.hit(f, e, { id: 'quake', dmg: 24, kb: 12, stun: 30, knockdown: true, big: true }, f.x, f.y);
+        });
         u.vulnerable = true;
         f.ultPose = () => ({ sy: 0.72, sx: 1.25, armF: 1.6, armB: -1.6 });
       }
@@ -1079,11 +1109,11 @@
         f.vy = SF.clamp(f.vy + d.y * 0.8, -6, 6);
         if (fr % 12 === 0) m.sfx('spin');
         if (fr % 4 === 0) m.fx.dust(f.x, f.y, false);
-        if (fr % 6 === 0 && dist(f, o) < 56) m.hit(f, o, { id: 'tw' + fr, dmg: 2, kb: 3, stun: 22, light: true }, f.x, f.y);
+        if (fr % 6 === 0) m.foesOf(f).forEach((e) => dist(f, e) < 56 && m.hit(f, e, { id: 'tw' + fr, dmg: 2, kb: 3, stun: 22, light: true }, f.x, f.y));
       }
       if (fr === 84) {
         f.vx = f.vy = 0;
-        if (dist(f, o) < 80) m.hit(f, o, { id: 'twf', dmg: 9, kb: 12, stun: 30, knockdown: true, big: true }, f.x, f.y);
+        m.foesOf(f).forEach((e) => dist(f, e) < 80 && m.hit(f, e, { id: 'twf', dmg: 9, kb: 12, stun: 30, knockdown: true, big: true }, f.x, f.y));
         f.ultPose = () => ({ face: 'dizzy', lean: Math.sin(f.anim * 0.2) * 0.25 });
         f.ult.vulnerable = true;
       }
@@ -1142,7 +1172,7 @@
           f.trail.push({ x: f.x, y: f.y, facing: f.facing });
           if (f.trail.length > 5) f.trail.shift();
         }
-        if (dist(f, o) < 42) m.hit(f, o, { id: 'dz' + u.pass, dmg: 5, kb: 3, stun: 30, light: true }, f.x, f.y);
+        m.foesOf(f).forEach((e) => dist(f, e) < 42 && m.hit(f, e, { id: 'dz' + u.pass, dmg: 5, kb: 3, stun: 30, light: true }, f.x, f.y));
         if (Math.hypot(u.tx - f.x, u.ty - f.y) < 18 || fr > 170) {
           u.pass++;
           if (u.pass >= 5 || fr > 170) {
@@ -1158,7 +1188,7 @@
         u.t++;
         if (u.t % 2 === 0 && f.trail.length) f.trail.shift();
         if (u.t === 8) {
-          f.melee(o, 'flare', 130, 0.2, { dmg: 10, kb: 11, stun: 30, dizzy: 60, big: true, word: 'DAZZLED!' });
+          m.foesOf(f).forEach((e) => f.melee(e, 'flare', 130, 0.2, { dmg: 10, kb: 11, stun: 30, dizzy: 60, big: true, word: 'DAZZLED!' }));
           m.fx.spark(f.x + f.aim.x * 40, f.y - 50, true, '#ffc93c');
         }
         if (u.t >= 12) u.vulnerable = true;
@@ -1348,10 +1378,22 @@
     tap(a) {
       this.taps[a] = 2;
     }
-    update(me, opp, m) {
+    // Pick who to chase: stick with the current target unless someone is much closer.
+    pickTarget(me, m) {
+      const foes = m.foesOf(me);
+      if (!foes.length) return null;
+      const near = m.nearestFoe(me);
+      if (!this.target || this.target.state === 'ko' || !foes.includes(this.target) || dist(me, near) < dist(me, this.target) - 120) {
+        this.target = near;
+      }
+      return this.target;
+    }
+    update(me, m) {
       if (--this.timer <= 0) {
         this.timer = this.p.think + Math.floor(Math.random() * 4);
-        this.think(me, opp, m);
+        const opp = this.pickTarget(me, m);
+        if (opp) this.think(me, opp, m);
+        else ['left', 'right', 'up', 'down', 'charge'].forEach((k) => (this.held[k] = false));
       }
       const out = Object.assign({}, this.held);
       for (const k in this.taps) {
@@ -1379,7 +1421,7 @@
       if (r() < 0.05) this.strafe *= -1;
 
       // dodge boomerangs, shots and warning circles
-      const threat = m.entities.find((e) => (e instanceof Rang || e instanceof Shot) && e.owner === opp && Math.hypot(e.x - me.x, e.y - me.y) < 150);
+      const threat = m.entities.find((e) => (e instanceof Rang || e instanceof Shot) && e.owner !== me && Math.hypot(e.x - me.x, e.y - me.y) < 150);
       if (threat && r() < P.block) {
         const side = { x: -to.y * this.strafe, y: to.x * this.strafe };
         this.go(side.x, side.y);
@@ -1387,6 +1429,7 @@
         return;
       }
       for (const e of m.entities) {
+        if (e.owner === me) continue;
         const z = e.dangerZone && e.dangerZone();
         if (z && Math.hypot(z.x - me.x, z.y - me.y) < z.r && r() < P.dodge + 0.1) {
           const away = norm(me.x - z.x, me.y - z.y);
@@ -1439,17 +1482,19 @@
       this.arena = SF.ARENAS[o.stage];
       this.obstacles = this.arena.obstacles;
       this.bounds = o.table ? { x0: 40, x1: 920, y0: 110, y1: 450 } : { x0: 40, x1: 920, y0: 118, y1: 505 };
+      const ids = o.fighters || [o.p1, o.p2];
+      this.f4 = ids.length > 2;
       this.fx = new SF.Effects();
       this.entities = [];
       this.projectiles = [];
-      this.f = [new ArenaFighter(o.p1, 0, this, false), new ArenaFighter(o.p2, 1, this, o.p1 === o.p2)];
+      this.f = ids.map((id, i) => new ArenaFighter(id, i, this, ids.slice(0, i).includes(id)));
       this.ctrl = o.controllers.map((c) => (c.type === 'ai' ? new ArenaAI(c.level) : c));
       this.ctrl.forEach((c, i) => {
         if (c instanceof ArenaAI) this.f[i].handicap = c.p.dmg;
       });
       this.t = 0;
       this.round = 1;
-      this.wins = [0, 0];
+      this.wins = this.f.map(() => 0);
       this.needed = Math.ceil((o.rounds || 3) / 2);
       this.hitstop = 0;
       this.slow = 0;
@@ -1464,8 +1509,14 @@
     sfx(n) {
       if (!this.o.silent) SF.Audio.play(n);
     }
-    opponentOf(f) {
-      return this.f[f.side === 0 ? 1 : 0];
+    // Everyone else still in the round.
+    foesOf(f) {
+      return this.f.filter((o) => o !== f && o.state !== 'ko');
+    }
+    nearestFoe(f) {
+      const foes = this.foesOf(f);
+      if (!foes.length) return this.f.find((o) => o !== f);
+      return foes.reduce((a, b) => (dist(f, a) <= dist(f, b) ? a : b));
     }
     isHuman(i) {
       return !(this.ctrl[i] instanceof ArenaAI);
@@ -1504,7 +1555,7 @@
     hit(att, def, p, fx, fy) {
       if (!def || this.roundState !== 'fight') return 'miss';
       const store = p.hitSet || (att && att.hitIds);
-      const key = p.hitSet ? p.id + ':' + def.side : p.id + '#' + (att ? att.ultSeq : 0);
+      const key = p.hitSet ? p.id + ':' + def.side : p.id + '#' + (att ? att.ultSeq : 0) + ':' + def.side;
       if (store && store.has(key)) return 'miss';
       if (['ko', 'down', 'getup', 'ultCine'].includes(def.state) || def.hidden) return 'miss';
       if (def.invuln > 0 && !p.hold) return 'miss';
@@ -1546,6 +1597,10 @@
       if (def.hp <= 0) {
         def.hp = 0;
         if (def.state === 'ult') def.cleanupUlt();
+        if (this.f.filter((o) => o.hp > 0).length > 1) {
+          this.fx.text(def.def.name + ' IS OUT!', def.x, def.y - 110, '#ff5a3c', 30);
+          this.sfx('ko');
+        }
         def.setState('ko');
         def.spin = 0;
         def.vx = kb.x * 8;
@@ -1556,8 +1611,8 @@
 
     readCtrl(i) {
       const c = this.ctrl[i];
-      if (c instanceof ArenaAI) return c.update(this.f[i], this.f[1 - i], this);
-      return SF.Input.read(c.slot, c.merged);
+      if (c instanceof ArenaAI) return c.update(this.f[i], this);
+      return SF.Input.read(c.slot, c.merged, c.pad, c.keys);
     }
 
     update() {
@@ -1588,17 +1643,23 @@
         const raw = fighting || this.isHuman(i) ? this.readCtrl(i) : null;
         f.setInput(fighting ? raw : SF.blankInput());
       });
-      this.f[0].update(this.f[1]);
-      this.f[1].update(this.f[0]);
-      this.push(this.f[0], this.f[1]);
+      this.f.forEach((f) => f.update());
+      for (let a = 0; a < this.f.length; a++) for (let b = a + 1; b < this.f.length; b++) this.push(this.f[a], this.f[b]);
       this.entities.forEach((e) => e.update(this));
       this.entities = this.entities.filter((e) => !e.dead);
       // boomerangs clash in mid-air
       const rangs = this.entities.filter((e) => e instanceof Rang);
-      if (rangs.length === 2 && rangs[0].owner !== rangs[1].owner && Math.hypot(rangs[0].x - rangs[1].x, rangs[0].y - rangs[1].y) < 24) {
-        rangs.forEach((g) => g.turnBack());
-        this.fx.spark((rangs[0].x + rangs[1].x) / 2, rangs[0].y - 26, false);
-        this.sfx('block');
+      for (let a = 0; a < rangs.length; a++) {
+        for (let b = a + 1; b < rangs.length; b++) {
+          const g1 = rangs[a];
+          const g2 = rangs[b];
+          if (g1.phase === 'out' && g2.phase === 'out' && Math.hypot(g1.x - g2.x, g1.y - g2.y) < 24) {
+            g1.turnBack();
+            g2.turnBack();
+            this.fx.spark((g1.x + g2.x) / 2, g1.y - 26, false);
+            this.sfx('block');
+          }
+        }
       }
       this.fx.update();
 
@@ -1673,7 +1734,7 @@
             return;
           }
         }
-        if (this.f.some((f) => f.hp <= 0)) {
+        if (this.f.filter((f) => f.hp > 0).length <= 1) {
           this.roundState = 'ko';
           this.koT = 0;
           this.timeUp = false;
@@ -1687,14 +1748,13 @@
       if (this.roundState === 'ko') {
         this.koT++;
         if (this.koT === 90) {
-          const [a, b] = this.f;
           let w = -1;
+          const alive = this.f.filter((f) => f.hp > 0);
           if (this.timeUp) {
-            const pa = a.hp / a.maxHp;
-            const pb = b.hp / b.maxHp;
-            w = pa > pb ? 0 : pb > pa ? 1 : -1;
-          } else if (a.hp > 0 && b.hp <= 0) w = 0;
-          else if (b.hp > 0 && a.hp <= 0) w = 1;
+            const best = Math.max(...alive.map((f) => f.hp / f.maxHp));
+            const top = alive.filter((f) => f.hp / f.maxHp === best);
+            if (top.length === 1) w = top[0].side;
+          } else if (alive.length === 1) w = alive[0].side;
           if (w >= 0) {
             const wf = this.f[w];
             if (wf.state === 'ult' || wf.state === 'ultCine') wf.cleanupUlt();
@@ -1710,7 +1770,7 @@
             this.roundState = 'over';
             if (!this.ended) {
               this.ended = true;
-              if (this.o.onEnd) this.o.onEnd(this.wins[0] >= this.needed ? 0 : 1, this);
+              if (this.o.onEnd) this.o.onEnd(this.wins.findIndex((n) => n >= this.needed), this);
             }
           } else {
             this.round++;
@@ -1739,8 +1799,8 @@
     }
 
     tagFor(side) {
-      if (!this.isHuman(side)) return { text: 'CPU', color: '#e0e0e0' };
-      return { text: 'P' + (side + 1), color: side === 0 ? '#ff6b6b' : '#4ab3ff' };
+      if (!this.isHuman(side)) return { text: 'CPU', color: this.f4 ? SF.SLOT_COLORS[side] : '#e0e0e0' };
+      return { text: 'P' + (side + 1), color: SF.SLOT_COLORS[side] };
     }
 
     // ------------------------------------------------------------ render
@@ -1839,6 +1899,23 @@
     }
 
     drawHud(ctx) {
+      if (this.f4) {
+        this.f.forEach((f, i) => {
+          ctx.save();
+          if (this.o.table) {
+            const seat = SEATS[i];
+            ctx.translate(W * seat.hx, seat.hy ? H - 26 : 26);
+            ctx.rotate(seat.rot);
+          } else {
+            ctx.translate(W * (0.125 + i * 0.25), 40);
+          }
+          ctx.scale(this.o.table ? 0.62 : 0.72, this.o.table ? 0.62 : 0.72);
+          if (f.state === 'ko') ctx.globalAlpha = 0.5;
+          this.drawHudBlock(ctx, f, i);
+          ctx.restore();
+        });
+        return;
+      }
       if (this.o.table) {
         ctx.save();
         ctx.translate(W / 2, H - 38);

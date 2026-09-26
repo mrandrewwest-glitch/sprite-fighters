@@ -33,6 +33,15 @@ A top-down mode where the fighters run around in every direction, inspired by pa
 - **Face-to-Face:** choose *2 Players Face-to-Face* on a tablet and lay it flat between the players. Player 2's joystick, buttons, health bar and the announcements are turned around to face them on the far side.
 - **Arenas:** Outback Clearing, Backyard BBQ (with a spinning Hills Hoist) and Beach Cricket.
 
+### 🎉 4-Player Party
+
+Up to 4 fighters in the arena, everyone for themselves. The last one standing wins the round.
+
+- On the setup screen, set each slot to **🎮 Player** or **🤖 CPU** and tap a portrait to change that fighter. CPU slots start with random fighters. One button sets the CPU difficulty.
+- **Sharing a tablet:** lay it flat. Each player gets half of an edge with their own joystick, buttons and health bar. Players 2 and 4 sit on the far side, with everything turned to face them.
+- **On a computer:** the first two players use the keyboard (WASD / arrow keys). With 3 or 4 players, Players 3 and 4 use gamepads. A single player can use any keys or gamepad.
+- CPUs chase whoever is closest, so they fight each other too.
+
 ## How to play
 
 - Move left and right, **up** to jump and **down** to crouch. **Hold away** from your opponent to block.

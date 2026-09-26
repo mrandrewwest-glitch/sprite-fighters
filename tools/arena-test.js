@@ -48,6 +48,28 @@ const out = process.argv[3] || '.';
       }
     }
     res.push(SF.ROSTER.map((id) => `${id} ${Math.round((100 * wins[id][0]) / wins[id][1])}%`).join('  '));
+    // 4-fighter free-for-alls
+    let unfinished = 0;
+    for (let k = 0; k < 24; k++) {
+      let w = null;
+      const ids = SF.ROSTER.slice().sort(() => Math.random() - 0.5).slice(0, 4);
+      const m = new SF.ArenaMatch({
+        fighters: ids, stage: SF.pick(SF.ARENA_LIST), rounds: 3, timer: 60, silent: true, table: k % 2 === 0,
+        controllers: ids.map(() => ({ type: 'ai', level: SF.pick(['easy', 'medium', 'hard', 'champion']) })), onEnd: (x) => (w = x),
+      });
+      for (let i = 0; i < 60 * 60 * 5 && w === null; i++) {
+        if (i % 700 === 0) m.f.forEach((f) => (f.meter = 100));
+        m.update();
+        m.f.forEach((f) => {
+          if (!isFinite(f.x) || !isFinite(f.y) || !isFinite(f.hp)) throw new Error('bad numbers 4p ' + ids);
+        });
+      }
+      if (w === null) {
+        unfinished++;
+        res.push('4P DID NOT FINISH: ' + ids + ' states=' + m.f.map((f) => f.state) + ' rs=' + m.roundState + ' round=' + m.round);
+      }
+    }
+    res.push('4-player matches: 24 run, ' + unfinished + ' unfinished');
     return res.join('\n');
   });
   console.log(report);

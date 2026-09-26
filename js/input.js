@@ -18,16 +18,17 @@ SF.Input = (() => {
     },
   ];
   const keys = [SF.blankInput(), SF.blankInput()];
-  const touch = [SF.blankInput(), SF.blankInput()];
+  const touch = [SF.blankInput(), SF.blankInput(), SF.blankInput(), SF.blankInput()];
   // Presses are latched until read, so a tap shorter than one frame still counts.
-  const latch = [SF.blankInput(), SF.blankInput()];
+  const latch = [SF.blankInput(), SF.blankInput(), SF.blankInput(), SF.blankInput()]; // touch taps, per player
+  const keyLatch = [SF.blankInput(), SF.blankInput()]; // key taps, per keyboard layout
 
   window.addEventListener('keydown', (e) => {
     for (let i = 0; i < 2; i++) {
       const a = KEYMAPS[i][e.code];
       if (a) {
         keys[i][a] = true;
-        latch[i][a] = true;
+        keyLatch[i][a] = true;
         if (SF.Input.inFight) e.preventDefault();
       }
     }
@@ -65,18 +66,25 @@ SF.Input = (() => {
     }
   }
 
+  // i: player number (their touch controls).
   // merged = true lets one player use every keyboard layout and any gamepad.
-  function read(i, merged) {
+  // pad: which gamepad this player uses (defaults to i; -1 = none).
+  // keyMap: which keyboard layout they use (defaults to i; -1 = none).
+  function read(i, merged, pad, keyMap) {
     const out = SF.blankInput();
     const ps = pads();
+    const km = keyMap != null ? keyMap : i;
+    const hasKeys = km >= 0 && km < keys.length;
     SF.ACTIONS.forEach((a) => {
-      out[a] = merged ? keys[0][a] || keys[1][a] || latch[0][a] || latch[1][a] : keys[i][a] || latch[i][a];
+      if (merged) out[a] = keys[0][a] || keys[1][a] || keyLatch[0][a] || keyLatch[1][a];
+      else if (hasKeys) out[a] = keys[km][a] || keyLatch[km][a];
       if (touch[i][a] || latch[i][a]) out[a] = true;
       latch[i][a] = false;
-      if (merged) latch[0][a] = latch[1][a] = false;
+      if (merged) keyLatch[0][a] = keyLatch[1][a] = false;
+      else if (hasKeys) keyLatch[km][a] = false;
     });
     if (merged) ps.forEach((p) => readPad(p, out));
-    else readPad(ps[i], out);
+    else if (pad !== -1) readPad(ps[pad != null ? pad : i], out);
     return out;
   }
 
@@ -89,7 +97,7 @@ SF.Input = (() => {
   ];
 
   function clearTouch() {
-    touch.concat(latch).forEach((t) => SF.ACTIONS.forEach((a) => (t[a] = false)));
+    touch.concat(latch, keyLatch).forEach((t) => SF.ACTIONS.forEach((a) => (t[a] = false)));
   }
 
   function makeStick(player) {
@@ -145,6 +153,7 @@ SF.Input = (() => {
     const el = document.createElement('div');
     el.className = 'tbtn ' + def.cls;
     el.dataset.action = def.a;
+    el.dataset.player = player;
     el.textContent = def.label;
     const on = (e) => {
       e.preventDefault();
@@ -178,7 +187,25 @@ SF.Input = (() => {
       const btns = document.createElement('div');
       btns.className = 'btns';
       BUTTONS.forEach((b) => btns.appendChild(makeButton(p, b)));
-      if (layout === 'table') {
+      if (layout === 'quad') {
+        // Each player gets half of an edge; players 2 and 4 sit on the far side.
+        const far = p === 1 || p === 3;
+        const holder = document.createElement('div');
+        holder.className = 'qpad ' + (p === 0 || p === 1 ? 'q-left' : 'q-right');
+        holder.appendChild(stick);
+        holder.appendChild(btns);
+        const tag = document.createElement('div');
+        tag.className = 'qtag';
+        tag.style.color = SF.SLOT_COLORS[p];
+        tag.textContent = 'P' + (p + 1);
+        holder.appendChild(tag);
+        if (far) {
+          const rot = document.createElement('div');
+          rot.className = 'pad-rot';
+          rot.appendChild(holder);
+          pad.appendChild(rot);
+        } else pad.appendChild(holder);
+      } else if (layout === 'table') {
         // Both players get the same layout; Player 2's is spun 180 degrees.
         const holder = idx === 0 ? pad : document.createElement('div');
         if (idx === 1) {
@@ -200,7 +227,7 @@ SF.Input = (() => {
         pad.appendChild(btns);
         pad.appendChild(stick);
       }
-      if (split && layout !== 'table') {
+      if (split && layout === 'split') {
         const tag = document.createElement('div');
         tag.className = 'pad-tag';
         tag.textContent = 'P' + (p + 1);
@@ -218,13 +245,7 @@ SF.Input = (() => {
   }
 
   function setChargeReady(player, ready) {
-    document
-      .querySelectorAll('#touch .b-charge')
-      .forEach((el, i) => {
-        const pads = document.querySelectorAll('#touch .b-charge').length;
-        const owner = pads > 1 ? i : 0;
-        if (owner === player) el.classList.toggle('ready', ready);
-      });
+    document.querySelectorAll(`#touch .b-charge[data-player="${player}"]`).forEach((el) => el.classList.toggle('ready', ready));
   }
 
   return { read, pads, buildTouch, hideTouch, setChargeReady, inFight: false };
