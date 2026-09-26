@@ -301,12 +301,12 @@
       const kbDir = p.kbDir || (att ? Math.sign(def.x - att.x) || att.facing : 1);
       const cx = SF.clamp((Math.max(box.x, hb.x) + Math.min(box.x + box.w, hb.x + hb.w)) / 2, hb.x, hb.x + hb.w);
       const cy = SF.clamp(box.y + box.h / 2, hb.y + 10, hb.y + hb.h - 10);
-      const power = att ? att.def.power * att.handicap : 1;
+      const power = att ? att.def.power * att.handicap * (att.raging() ? 1.2 : 1) : 1;
       let dmg = p.dmg * power * def.def.defense;
 
       const blocking = !p.unblockable && def.canBlock() && (kbDir > 0 ? def.inp.right : def.inp.left);
       if (blocking) {
-        dmg *= p.chip != null ? p.chip : 0.12;
+        dmg *= (p.chip != null ? p.chip : 0.12) * (def.def.shell ? 0.35 : 1);
         def.hp = Math.max(1, def.hp - dmg);
         def.crouchBlock = !!def.inp.down;
         def.setState('blockstun');
@@ -318,6 +318,11 @@
         if (def.def.prickly && att && !p.kbDir && Math.abs(att.x - def.x) < 160) {
           att.hp = Math.max(1, att.hp - 2);
           this.fx.text('OUCH!', att.x, att.y - att.def.height - 20, '#f1e3c0', 26);
+        }
+        if (def.def.frillGuard && att && !p.kbDir && Math.abs(att.x - def.x) < 180 && att.state !== 'ult') {
+          att.vx = -kbDir * 9;
+          def.meter = Math.min(100, def.meter + 4);
+          this.fx.text('FRILL!', def.x, def.y - def.def.height - 20, '#ffc93c', 24);
         }
         this.fx.blockSpark(cx - kbDir * 10, cy);
         this.sfx('block');
@@ -468,7 +473,8 @@
       const skip = ['grabbed', 'ko', 'down'];
       if (skip.includes(a.state) || skip.includes(b.state) || a.noClamp || b.noClamp) return;
       if (a.sink > 0 || b.sink > 0) return;
-      const passing = (f) => f.state === 'attack' && f.move && f.move.passThrough;
+      const passing = (f) =>
+        (f.state === 'attack' && f.move && f.move.passThrough) || (f.state === 'ult' && f.ultData && f.ultData.passThrough);
       if (passing(a) || passing(b)) return;
       if (Math.abs(a.y - b.y) > 100) return;
       const minD = ((a.def.width + b.def.width) / 2) * 1.1;
@@ -492,6 +498,7 @@
     updateProjectiles() {
       for (const p of this.projectiles) {
         p.t++;
+        if (p.update) p.update();
         p.x += p.vx;
         p.y += p.vy;
         p.life--;

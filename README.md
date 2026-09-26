@@ -2,7 +2,7 @@
 
 A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, or battle through **Arcade** mode. It runs in the browser on computers, iPads and phones, with no install needed.
 
-## Fighters (8 of 12 so far)
+## Fighters (all 12)
 
 | Fighter | Style | ⭐ Special | ⚡ Ultimate |
 |---|---|---|---|
@@ -14,10 +14,12 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 | 🦆 **Dotty the Platypus** | Tricky swimmer. Can crawl while crouching | Bill Slap Splash (a ground wave that trips) | **Billabong Blast**: dives underground, erupts as a geyser, then bill-slaps in mid-air |
 | 🟫 **Wombo the Wombat** | Heavy bruiser. Bum Bump powers through small hits | Bum Bump | **Cube Crusher**: giant square wombat poos rain from the sky |
 | 🪶 **Dash the Emu** | Speedster with extra-long kicks | Zoomie Dash (runs straight through the opponent) | **Emu Stampede**: a whole mob of emus charges across the screen |
+| 🌪️ **Taz the Tassie Devil** | Wild spinner. Hits harder when his health is low | Growl Scare (blasts the foe backwards) | **Devil Whirlwind**: a tornado that chases the foe, then flings them (and leaves Taz dizzy) |
+| 🐢 **Shelly the Sea Turtle** | Shell defender. Blocking barely hurts her | Bubble Blast (a floating bubble that traps) | **Great Barrier Wave**: a giant wave full of fish that she surfs across the screen |
+| 🦎 **Lizzie the Frill-neck** | Trickster. Her frill scares attackers back when she blocks | Frill Scare (leaves the foe dizzy) | **Desert Dash Dazzle**: sprints back and forth in a blur, then a dazzling frill flash |
+| 🦜 **Cheeky the Cockatoo** | Noisy ranger. Double jump and slow fall | Screech (a sound wave; works in the air) | **Sulphur Crest Storm**: a flock of cockatoos dive-bombs from the sky, then a giant one |
 
-Still to come: Taz the Tassie Devil, Shelly the Sea Turtle, Lizzie the Frill-neck and Cheeky the Cockatoo.
-
-**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong and The Outback Dunny.
+**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef and Cradle Mountain.
 
 ## How to play
 
@@ -71,7 +73,8 @@ js/input.js         keyboard, gamepad and touch controls
 js/draw.js          cartoon drawing helpers
 js/fighters.js      roster pack 1 (Kip, Koko, Kooka, Croc) + shared move helpers
 js/fighters2.js     roster pack 2 (Spike, Dotty, Wombo, Dash)
-js/stages.js        the six stages
+js/fighters3.js     roster pack 3 (Taz, Shelly, Lizzie, Cheeky)
+js/stages.js        the eight stages
 js/effects.js       particles, pop-up words, screen shake
 js/fighter.js       fighter state machine, physics and animation
 js/ai.js            CPU opponent and difficulty levels

@@ -644,7 +644,7 @@
   Object.assign(SF.FIGHTERS, {
     spike: {
       id: 'spike', name: 'SPIKE', full: 'Spike the Echidna', emoji: '🦔', style: 'Prickly Defender',
-      height: 118, width: 66, portraitDx: 4, health: 100, speed: 3.7, jump: 14.5, power: 1, defense: 0.95, gravity: 1,
+      height: 118, width: 66, portraitDx: 4, health: 100, speed: 3.7, jump: 14.5, power: 0.94, defense: 0.97, gravity: 1,
       walk: 'waddle', stats: { power: 3, speed: 3, health: 4, jump: 3 }, prickly: true,
       passive: 'Prickly: anyone who hits him while he blocks gets pricked!',
       special: { name: 'Spiky Ball Roll', desc: 'Curls into a spiky ball and rolls straight at the foe.' },

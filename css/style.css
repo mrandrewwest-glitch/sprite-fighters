@@ -187,10 +187,10 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
 .moves p { margin: 0 0 calc(var(--u) * 6); }
 
 /* ---------- stage select ---------- */
-.stage-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 14); margin-top: calc(var(--u) * 10); }
+.stage-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: calc(var(--u) * 12); margin-top: calc(var(--u) * 10); }
 .stage-card { padding: calc(var(--u) * 6); display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 4); }
-.stage-card { font-size: calc(var(--u) * 16); }
-.stage-card canvas { width: calc(var(--u) * 192); height: calc(var(--u) * 108); border-radius: calc(var(--u) * 8); border: calc(var(--u) * 2) solid var(--ink); display: block; background: #222; }
+.stage-card { font-size: calc(var(--u) * 14); padding: calc(var(--u) * 5); }
+.stage-card canvas { width: calc(var(--u) * 160); height: calc(var(--u) * 90); border-radius: calc(var(--u) * 8); border: calc(var(--u) * 2) solid var(--ink); display: block; background: #222; }
 .stage-card.random canvas { background: linear-gradient(135deg, #ff8a3c, #c36bff); }
 
 /* ---------- VS ---------- */

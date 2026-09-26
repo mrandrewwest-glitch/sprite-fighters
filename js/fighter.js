@@ -51,6 +51,12 @@ SF.Fighter = class {
     this.wasReady = this.meter >= 100;
     this.sink = 0;
     this.buff = null;
+    this.trail = null;
+  }
+
+  // Taz hits harder when his health is low.
+  raging() {
+    return !!this.def.rage && this.hp > 0 && this.hp < this.maxHp * 0.3;
   }
 
   // Walking speed, including the Lamington sugar rush.
@@ -120,6 +126,7 @@ SF.Fighter = class {
     if (this.buffer && ++this.buffer.t > 10) this.buffer = null;
     if (this.buff && --this.buff.t <= 0) this.buff = null;
     if (this.buff && this.anim % 4 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.4, '#ff8ad8');
+    if (this.raging() && this.anim % 5 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.6, '#ff5a3c');
     const inp = this.inp;
 
     switch (this.state) {
@@ -348,6 +355,7 @@ SF.Fighter = class {
     this.ultPose = null;
     this.ultData = null;
     this.target = false;
+    this.trail = null;
     this.x = SF.clamp(this.x, SF.WALL_L, SF.WALL_R);
   }
 
@@ -618,6 +626,34 @@ SF.Fighter = class {
             p.bob = -Math.abs(run) * 6;
             break;
           }
+          case 'growl':
+            p.lean = 0.3 * kk;
+            p.head = 0.15;
+            p.armF = 1.7;
+            p.armB = 1.4;
+            p.armFExt = 1.1;
+            p.bob = fr > 9 && fr < 20 ? Math.sin(fr * 2) * 2 : 0;
+            break;
+          case 'bubble':
+            p.lean = 0.12;
+            p.head = 0.2;
+            p.armF = 1.1;
+            p.face = fr < 20 ? 'normal' : 'happy';
+            break;
+          case 'frill':
+            p.frill = fr < 10 ? fr / 10 : fr < 30 ? 1 : Math.max(0, 1 - (fr - 30) / 12);
+            p.armF = 2.5;
+            p.armB = 2.3;
+            p.lean = -0.15;
+            break;
+          case 'screech':
+            p.crest = 1;
+            p.head = 0.3;
+            p.beak = 0.55;
+            p.armF = 2.2;
+            p.armB = 2.0;
+            p.lean = 0.1;
+            break;
           case 'tailspin': {
             const a = SF.clamp((fr - 6) / 20, 0, 1) * Math.PI * 2;
             p.flip = Math.cos(a) >= 0 ? 1 : -1;
@@ -836,6 +872,55 @@ SF.Fighter = class {
         p.armF = 2.8;
         p.head = -0.2;
         break;
+      case 'taz_spin':
+        p.special = true;
+        break;
+      case 'taz_dizzy':
+        p.face = 'dizzy';
+        p.lean = Math.sin(t * 0.2) * 0.25;
+        p.head = Math.sin(t * 0.2 + 1) * 0.3;
+        p.armF = 1.2 + Math.sin(t * 0.3) * 0.5;
+        break;
+      case 'shelly_call':
+        p.face = 'happy';
+        p.armF = 2.7;
+        p.armB = 2.5;
+        p.bob = -Math.abs(Math.sin(t * 0.3)) * 6;
+        break;
+      case 'shelly_surf':
+        p.face = 'laugh';
+        p.lean = 0.2;
+        p.armF = 1.7;
+        p.armB = -1.5;
+        p.legF = 0.5;
+        p.legB = -0.5;
+        break;
+      case 'lizzie_run': {
+        const r = Math.sin(t * 1.2);
+        p.lean = 0.55;
+        p.frill = 0.6;
+        p.legF = r * 1.2;
+        p.legB = -r * 1.2;
+        p.armF = -0.9;
+        p.armB = -1.1;
+        p.bob = -Math.abs(r) * 6;
+        p.tail = -0.4;
+        break;
+      }
+      case 'lizzie_flare':
+        p.frill = 1;
+        p.armF = 2.6;
+        p.armB = 2.4;
+        p.lean = -0.2;
+        break;
+      case 'cheeky_call':
+        p.face = 'laugh';
+        p.crest = 1;
+        p.head = -0.35;
+        p.beak = 0.5;
+        p.armF = 1.9 + Math.sin(t * 0.8) * 0.8;
+        p.armB = 1.7 + Math.sin(t * 0.8 + 0.5) * 0.8;
+        break;
       case 'croc_recover':
       default:
         p.armF = 0.8;
@@ -867,6 +952,16 @@ SF.Fighter = class {
 
   draw(ctx, tag) {
     const p = this.getPose();
+    if (this.trail) {
+      this.trail.forEach((g, i) => {
+        ctx.save();
+        ctx.globalAlpha = 0.12 + i * 0.06;
+        ctx.translate(g.x, g.y);
+        ctx.scale(g.facing, 1);
+        this.def.draw(ctx, p, this.pal);
+        ctx.restore();
+      });
+    }
     ctx.save();
     if (this.invuln > 0 && this.state === 'getup' && Math.floor(this.anim / 3) % 2) ctx.globalAlpha = 0.55;
     ctx.translate(this.x, this.y);
@@ -903,6 +998,7 @@ SF.Fighter = class {
     ctx.translate(0, p.bob);
     ctx.scale(p.sx, p.sy);
     if (p.ball != null && this.def.drawBall) this.def.drawBall(ctx, p, this.pal);
+    else if (p.special && this.def.drawSpecial) this.def.drawSpecial(ctx, p, this.pal);
     else this.def.draw(ctx, p, this.pal);
     ctx.restore();
 

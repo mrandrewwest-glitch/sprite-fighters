@@ -782,8 +782,237 @@
     },
   };
 
-  SF.STAGES = { uluru, bondi, rainforest, harbour, billabong, dunny };
-  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour', 'billabong', 'dunny'];
+  // ------------------------------------------------------------- GREAT BARRIER REEF
+  const reef = {
+    name: 'Great Barrier Reef', emoji: '🐠',
+    drawStatic(ctx) {
+      const rnd = SF.seeded(303);
+      ctx.fillStyle = grad(ctx, 0, 290, [[0, '#29b6f6'], [1, '#e0f7ff']]);
+      ctx.fillRect(0, 0, W, 290);
+      // distant island
+      ctx.fillStyle = '#4caf50';
+      ctx.beginPath();
+      ctx.ellipse(760, 292, 110, 26, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#f7e7b5';
+      ctx.fillRect(650, 288, 220, 6);
+      // deep to shallow sea
+      ctx.fillStyle = grad(ctx, 290, 410, [[0, '#0277bd'], [0.45, '#00acc1'], [1, '#6ee7e0']]);
+      ctx.fillRect(0, 290, W, 120);
+      // coral in the shallows
+      for (let i = 0; i < 26; i++) {
+        const x = rnd() * W;
+        const y = 350 + rnd() * 50;
+        ctx.fillStyle = SF.pick(['rgba(255,110,150,0.7)', 'rgba(255,170,70,0.7)', 'rgba(180,110,255,0.6)', 'rgba(255,230,90,0.7)']);
+        for (let k = 0; k < 4; k++) {
+          ctx.beginPath();
+          ctx.ellipse(x + (k - 1.5) * 6, y - k * 3, 6, 10 + k * 2, (k - 1.5) * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      // sand
+      ctx.fillStyle = grad(ctx, 405, H, [[0, '#fbeec1'], [1, '#e9cf8a']]);
+      ctx.beginPath();
+      ctx.moveTo(0, 412);
+      for (let x = 0; x <= W; x += 40) ctx.lineTo(x, 405 + Math.sin(x * 0.02) * 5);
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.fill();
+      for (let i = 0; i < 120; i++) {
+        ctx.fillStyle = `rgba(170,130,60,${0.1 + rnd() * 0.2})`;
+        ctx.fillRect(rnd() * W, 415 + rnd() * 125, 2, 2);
+      }
+      // palm tree
+      ctx.strokeStyle = '#8d6e4a';
+      ctx.lineWidth = 14;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(70, 420);
+      ctx.quadraticCurveTo(60, 300, 120, 200);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 10; k++) {
+        const tt = k / 10;
+        const x = (1 - tt) * (1 - tt) * 70 + 2 * (1 - tt) * tt * 60 + tt * tt * 120;
+        const y = (1 - tt) * (1 - tt) * 420 + 2 * (1 - tt) * tt * 300 + tt * tt * 200;
+        ctx.beginPath();
+        ctx.moveTo(x - 7, y);
+        ctx.lineTo(x + 7, y - 3);
+        ctx.stroke();
+      }
+      [[-2.6, 90], [-2.0, 100], [-1.2, 95], [-0.5, 85], [0.2, 70], [-3.1, 70]].forEach(([a, len]) => {
+        ctx.save();
+        ctx.translate(120, 200);
+        ctx.rotate(a);
+        ctx.fillStyle = '#43a047';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(len * 0.5, -22, len, 10);
+        ctx.quadraticCurveTo(len * 0.5, 0, 0, 0);
+        ctx.fill();
+        ctx.restore();
+      });
+      D.ell(ctx, 114, 208, 8, 8, '#6d4c2f', 0, false);
+      D.ell(ctx, 126, 210, 8, 8, '#6d4c2f', 0, false);
+      // little boat
+      ctx.fillStyle = '#e53935';
+      ctx.beginPath();
+      ctx.moveTo(820, 400);
+      ctx.lineTo(920, 400);
+      ctx.lineTo(905, 418);
+      ctx.lineTo(835, 418);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(820, 396, 100, 5);
+      // starfish + shells
+      [[300, 500], [560, 520], [720, 470]].forEach(([x, y]) => SF.D.star(ctx, x, y, 11, '#ff8a65', 0.3));
+      [[420, 470], [860, 510]].forEach(([x, y]) => D.ell(ctx, x, y, 8, 6, '#ffe0e6'));
+    },
+    drawAnim(ctx, t) {
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 71 + t * 0.4) % W;
+        const y = 300 + ((i * 29) % 90);
+        const a = 0.5 + 0.5 * Math.sin(t * 0.1 + i);
+        ctx.globalAlpha = a;
+        ctx.fillRect(x, y, 8, 2);
+      }
+      ctx.globalAlpha = 1;
+      const surf = 407 + Math.sin(t * 0.05) * 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(0, surf);
+      for (let x = 0; x <= W; x += 20) ctx.lineTo(x, surf + Math.sin(x * 0.04 + t * 0.07) * 3);
+      ctx.lineTo(W, surf + 5);
+      ctx.lineTo(0, surf + 5);
+      ctx.fill();
+      // fish darting in the shallows
+      for (let i = 0; i < 3; i++) {
+        const x = ((t * (1 + i * 0.4) + i * 300) % (W + 60)) - 30;
+        const y = 360 + i * 14 + Math.sin(t * 0.1 + i) * 4;
+        D.ell(ctx, x, y, 8, 4, ['#ffb03a', '#ff6b8a', '#ffd400'][i], 0, false);
+        D.poly(ctx, [x - 7, y, x - 13, y - 4, x - 13, y + 4], ['#ffb03a', '#ff6b8a', '#ffd400'][i], false);
+      }
+      // seagull
+      const gx = ((t * 0.9) % 1200) - 120;
+      D.line(ctx, gx - 10, 120 + Math.sin(t * 0.2) * 3, gx, 125, 2.5, '#555');
+      D.line(ctx, gx, 125, gx + 10, 120 + Math.sin(t * 0.2) * 3, 2.5, '#555');
+    },
+  };
+
+  // ------------------------------------------------------------- CRADLE MOUNTAIN, TASSIE
+  const tassie = {
+    name: 'Cradle Mountain', emoji: '🏔️',
+    drawStatic(ctx) {
+      const rnd = SF.seeded(404);
+      ctx.fillStyle = grad(ctx, 0, 330, [[0, '#8fb3d9'], [1, '#e3eef7']]);
+      ctx.fillRect(0, 0, W, 330);
+      // jagged mountain with snow caps
+      const peaks = [[80, 330], [200, 200], [260, 150], [300, 180], [360, 110], [410, 150], [470, 120], [540, 190], [640, 170], [760, 230], [900, 330]];
+      ctx.fillStyle = '#6a6d86';
+      ctx.beginPath();
+      ctx.moveTo(0, 330);
+      peaks.forEach(([x, y]) => ctx.lineTo(x, y));
+      ctx.lineTo(W, 330);
+      ctx.fill();
+      ctx.fillStyle = '#f5f7fb';
+      [[260, 150], [360, 110], [470, 120], [640, 170]].forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.moveTo(x - 30, y + 36);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + 30, y + 38);
+        ctx.lineTo(x + 12, y + 30);
+        ctx.lineTo(x, y + 42);
+        ctx.lineTo(x - 12, y + 28);
+        ctx.fill();
+      });
+      ctx.fillStyle = 'rgba(40,40,70,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(360, 110);
+      ctx.lineTo(410, 150);
+      ctx.lineTo(470, 120);
+      ctx.lineTo(540, 190);
+      ctx.lineTo(600, 330);
+      ctx.lineTo(400, 330);
+      ctx.fill();
+      // forest line
+      for (let i = 0; i < 40; i++) {
+        const x = i * 25 + rnd() * 10;
+        const h = 40 + rnd() * 40;
+        ctx.fillStyle = SF.pick(['#2e5d3a', '#274f31', '#35683f']);
+        ctx.beginPath();
+        ctx.moveTo(x, 340);
+        ctx.lineTo(x + 12, 340 - h);
+        ctx.lineTo(x + 24, 340);
+        ctx.fill();
+      }
+      // lake
+      ctx.fillStyle = grad(ctx, 338, 400, [[0, '#4d7fb0'], [1, '#2f5f8f']]);
+      ctx.fillRect(0, 338, W, 62);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.moveTo(300, 340);
+      ctx.lineTo(420, 340);
+      ctx.lineTo(380, 395);
+      ctx.lineTo(330, 395);
+      ctx.fill();
+      // boatshed
+      ctx.fillStyle = '#6b4a2a';
+      ctx.fillRect(700, 330, 60, 34);
+      D.poly(ctx, [694, 332, 730, 312, 766, 332], '#8a5a3a');
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(718, 344, 22, 20);
+      // buttongrass ground
+      ctx.fillStyle = grad(ctx, 395, H, [[0, '#b9a35a'], [1, '#7d6a35']]);
+      ctx.fillRect(0, 395, W, H - 395);
+      for (let i = 0; i < 40; i++) {
+        const x = rnd() * W;
+        const y = 405 + rnd() * 120;
+        ctx.strokeStyle = SF.pick(['#d8c27a', '#a08a45', '#c9b060']);
+        ctx.lineWidth = 2;
+        for (let k = -4; k <= 4; k++) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + k * 3, y - 16 + Math.abs(k));
+          ctx.stroke();
+        }
+      }
+      // snow gum trunks at the sides
+      [[30, 1], [930, -1]].forEach(([x, dir]) => {
+        ctx.strokeStyle = '#e6dccd';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.moveTo(x, 430);
+        ctx.quadraticCurveTo(x + dir * 20, 330, x + dir * 5, 250);
+        ctx.stroke();
+        ctx.fillStyle = '#5f8a4a';
+        ctx.beginPath();
+        ctx.ellipse(x + dir * 10, 240, 50, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    },
+    drawAnim(ctx, t) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 47 + Math.sin(t * 0.02 + i) * 30 + t * 0.3) % W;
+        const y = (i * 61 + t * (0.8 + (i % 3) * 0.3)) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      for (let i = 0; i < 3; i++) {
+        const x = ((t * 0.3 + i * 400) % 1400) - 300;
+        ctx.beginPath();
+        ctx.ellipse(x, 300 + i * 15, 180, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  };
+
+  SF.STAGES = { uluru, bondi, rainforest, harbour, billabong, dunny, reef, tassie };
+  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour', 'billabong', 'dunny', 'reef', 'tassie'];
 
   const cache = {};
   function staticCanvas(id) {

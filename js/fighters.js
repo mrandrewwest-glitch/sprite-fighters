@@ -777,7 +777,7 @@
     },
     croc: {
       id: 'croc', name: 'CAPT. CROC', full: 'Captain Croc', emoji: '🐊', style: 'Grappler',
-      height: 165, width: 62, portraitDx: 16, health: 110, speed: 3.4, jump: 14.5, power: 1.08, defense: 0.9, gravity: 1.05,
+      height: 165, width: 62, portraitDx: 16, health: 108, speed: 3.4, jump: 14.5, power: 1.03, defense: 0.92, gravity: 1.05,
       walk: 'waddle', stats: { power: 5, speed: 2, health: 4, jump: 2 },
       passive: 'Thick Scales: takes 10% less damage',
       special: { name: 'Tail Sweep', desc: 'Spins around, sweeping both sides with his tail. Jump over it!' },
