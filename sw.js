@@ -1,5 +1,6 @@
 // Offline support: serve from the network when possible, fall back to the cache.
-const CACHE = 'sprite-fighters-v8';
+// Keep in step with SF.VERSION in js/util.js.
+const CACHE = 'sprite-fighters-1.5.0';
 const ASSETS = [
   './',
   'index.html',

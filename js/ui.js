@@ -907,6 +907,7 @@
 
   // ------------------------------------------------------------ boot
   function boot() {
+    $('#version').textContent = 'v' + SF.VERSION;
     resize();
     buildRoster();
     startDemo();

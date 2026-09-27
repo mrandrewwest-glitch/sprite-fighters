@@ -113,6 +113,10 @@ sw.js               offline support
 tools/              headless test and screenshot scripts
 ```
 
+### Releasing a new version
+
+The version number shows in the bottom-right corner of the title screen. For each release, bump `SF.VERSION` in `js/util.js` and `CACHE` in `sw.js` to the same number. Changing `CACHE` tells installed copies to fetch the update.
+
 ### Adding a new fighter
 
 Add an entry to `SF.FIGHTERS` (see `js/fighters2.js` for an example) with a `draw` function, stats, a `special` move and an `ult` object (`start` and `update`). Then add its id to `SF.ROSTER` and remove it from `SF.COMING_SOON`.
