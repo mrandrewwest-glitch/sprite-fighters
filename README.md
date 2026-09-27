@@ -1,6 +1,6 @@
 # 🦘 Sprite Fighters: Outback Brawl 🐨
 
-A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, battle through **Arcade** mode, or run around the top-down **🪃 Boomerang Arena**. It runs in the browser on computers, iPads and phones, with no install needed.
+A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device** or battle through **Arcade** mode. It runs in the browser on computers, iPads and phones, with no install needed.
 
 ## Fighters (16!)
 
@@ -30,34 +30,13 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 
 **Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef, Cradle Mountain and ❄️ Mt Kosciuszko (with falling snow, snow gums and a ski lift).
 
-## 🪃 Boomerang Arena
-
-A top-down mode where the fighters run around in every direction, inspired by party games like Boomerang Fu.
-
-- **Move** in any direction. A little arrow shows which way you're aiming.
-- ⭐ **Throw your boomerang.** It flies out and comes back, so catch it to throw again. It hits on the way out *and* on the way back, and bounces back off rocks.
-- 👊 **Swipe** at anyone right next to you. 🦶 **Dash-kick** zooms forward and makes you briefly invincible, so use it to dodge.
-- ⚡ Every fighter's Ultimate works here too, redesigned for the arena: Koko's falling gum tree, Wombo's poo cubes, Shelly's wave and so on.
-- Snacks and Drop Bears drop in too.
-- **Face-to-Face:** choose *2 Players Face-to-Face* on a tablet and lay it flat between the players. Player 2's joystick, buttons, health bar and the announcements are turned around to face them on the far side.
-- **Arenas:** Outback Clearing, Backyard BBQ (with a spinning Hills Hoist), Beach Cricket and ⛄ Kosciuszko Snowfield (with snowmen and slippery frozen ponds to slide around on).
-
-### 🎉 4-Player Party
-
-Up to 4 fighters in the arena, everyone for themselves. The last one standing wins the round.
-
-- On the setup screen, set each slot to **🎮 Player** or **🤖 CPU** and tap a portrait to change that fighter. CPU slots start with random fighters. One button sets the CPU difficulty.
-- **Sharing a tablet:** lay it flat. Each player gets half of an edge with their own joystick, buttons and health bar. Players 2 and 4 sit on the far side, with everything turned to face them.
-- **On a computer:** the first two players use the keyboard (WASD / arrow keys). With 3 or 4 players, Players 3 and 4 use gamepads. A single player can use any keys or gamepad.
-- CPUs chase whoever is closest, so they fight each other too.
-
 ## How to play
 
 - Move left and right, **up** to jump and **down** to crouch. **Hold away** from your opponent to block.
 - 👊 Punch (fast), 🦶 Kick (strong). Hold down for low attacks; a low kick trips your opponent.
 - ⭐ Special: each fighter's signature move.
 - ⚡ **Hard Yakka meter**: fills when you hit, get hit or block. **Hold ⚡** to charge it faster, but you can't move or block while charging. When it glows gold, **tap ⚡** to unleash your **Ultimate**.
-- 🥧 **Power-up snacks** parachute into the arena. Race to grab them! **Meat Pie** restores health, **Vegemite** fills half your ⚡ meter, and a **Lamington** gives a sugar rush of extra speed.
+- 🥧 **Power-up snacks** parachute into the fight. Race to grab them! **Meat Pie** restores health, **Vegemite** fills half your ⚡ meter, and a **Lamington** gives a sugar rush of extra speed.
 - 🐨 Watch out for **Drop Bears** falling from the sky.
 - 🎺 Winning a round plays a jingle, and winning the match plays a victory fanfare.
 - Snacks, Drop Bears and music can each be switched off in Settings.
@@ -110,8 +89,6 @@ js/effects.js       particles, pop-up words, screen shake
 js/fighter.js       fighter state machine, physics and animation
 js/ai.js            CPU opponent and difficulty levels
 js/game.js          a match: rounds, hits, Drop Bears, power-up snacks, HUD
-js/arena-maps.js    Boomerang Arena maps and obstacles
-js/arena.js         Boomerang Arena: top-down fighters, boomerangs, ultimates, CPU, face-to-face HUD
 js/ui.js            menus, game flow and main loop
 sw.js               offline support
 tools/              headless test and screenshot scripts
@@ -130,5 +107,4 @@ node tools/smoke-test.js http://localhost:8123/ /tmp    # every matchup CPU vs C
 node tools/ult-shots.js http://localhost:8123/ /tmp     # screenshots of every special/ultimate
 node tools/device-shots.js http://localhost:8123/ /tmp  # phone / iPad touch layouts
 node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates per fighter
-node tools/arena-test.js http://localhost:8123/ /tmp     # Boomerang Arena: every matchup + ultimate screenshots
 ```

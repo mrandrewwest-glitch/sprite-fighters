@@ -94,7 +94,7 @@
     }
   }
 
-  // Snacks that drop into the arena. Grab one to power up!
+  // Snacks that drop into the fight. Grab one to power up!
   const SNACKS = {
     pie: { word: 'MEAT PIE! +HEALTH', color: '#8be15d' },
     vegemite: { word: 'VEGEMITE POWER!', color: '#ffd24a' },

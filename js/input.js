@@ -172,7 +172,7 @@ SF.Input = (() => {
   }
 
   // players: player indexes that need controls.
-  // layout: 'single' (one pad), 'split' (side by side) or 'table' (face-to-face).
+  // layout: 'single' (one pad) or 'split' (side by side).
   function buildTouch(players, layout) {
     const root = document.getElementById('touch');
     root.innerHTML = '';
@@ -187,39 +187,7 @@ SF.Input = (() => {
       const btns = document.createElement('div');
       btns.className = 'btns';
       BUTTONS.forEach((b) => btns.appendChild(makeButton(p, b)));
-      if (layout === 'quad') {
-        // Each player gets half of an edge; players 2 and 4 sit on the far side.
-        const far = p === 1 || p === 3;
-        const holder = document.createElement('div');
-        holder.className = 'qpad ' + (p === 0 || p === 1 ? 'q-left' : 'q-right');
-        holder.appendChild(stick);
-        holder.appendChild(btns);
-        const tag = document.createElement('div');
-        tag.className = 'qtag';
-        tag.style.color = SF.SLOT_COLORS[p];
-        tag.textContent = 'P' + (p + 1);
-        holder.appendChild(tag);
-        if (far) {
-          const rot = document.createElement('div');
-          rot.className = 'pad-rot';
-          rot.appendChild(holder);
-          pad.appendChild(rot);
-        } else pad.appendChild(holder);
-      } else if (layout === 'table') {
-        // Both players get the same layout; Player 2's is spun 180 degrees.
-        const holder = idx === 0 ? pad : document.createElement('div');
-        if (idx === 1) {
-          holder.className = 'pad-rot';
-          pad.appendChild(holder);
-        }
-        holder.appendChild(stick);
-        holder.appendChild(btns);
-        const tag = document.createElement('div');
-        tag.className = 'pad-tag';
-        tag.style.color = idx === 0 ? '#ff6b6b' : '#4ab3ff';
-        tag.textContent = 'P' + (p + 1);
-        holder.appendChild(tag);
-      } else if (idx === 0) {
+      if (idx === 0) {
         pad.appendChild(stick);
         if (split) pad.appendChild(btns);
         else root.appendChild(btns);

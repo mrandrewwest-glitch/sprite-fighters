@@ -33,38 +33,12 @@
           <button class="btn big" data-act="mode-1p">🦘 1 Player vs CPU</button>
           <button class="btn big" data-act="mode-2p">👫 2 Players</button>
           <button class="btn big" data-act="mode-arcade">🏆 Arcade</button>
-          <button class="btn big arena-btn" data-act="mode-arena">🪃 Boomerang Arena</button>
           <div class="row">
             <button class="btn" data-act="howto">❓ How to Play</button>
             <button class="btn" data-act="settings">⚙️ Settings</button>
             <button class="btn" data-act="fullscreen" id="fs-btn">⛶ Full Screen</button>
           </div>
         </div>
-      </section>
-
-      <!-- BOOMERANG ARENA -->
-      <section id="scr-arena" class="screen solid">
-        <button class="btn back" data-act="back">◀ Back</button>
-        <h2>🪃 Boomerang Arena</h2>
-        <p class="blurb">Run around a top-down arena! Throw your boomerang with ⭐ (then catch it when it comes back), swipe with 👊 and dash-kick with 🦶. ⚡ Ultimates work here too!</p>
-        <div class="menu col">
-          <button class="btn big" data-act="arena-1p">🦘 1 Player vs CPU</button>
-          <button class="btn big" data-act="arena-2p">👫 2 Players Face-to-Face</button>
-          <button class="btn big party-btn" data-act="party">🎉 4-Player Party</button>
-        </div>
-        <p class="blurb small">On a tablet, lay it flat on the table and sit on opposite sides. Player 2's buttons flip around to face them!</p>
-      </section>
-
-      <!-- 4-PLAYER PARTY -->
-      <section id="scr-party" class="screen solid">
-        <button class="btn back" data-act="back">◀ Back</button>
-        <h2>🎉 4-Player Party</h2>
-        <div class="party-grid" id="party-grid"></div>
-        <div class="row">
-          <button class="btn" data-act="party-diff" id="party-diff"></button>
-          <button class="btn go big" data-act="party-go">Pick an Arena ▶</button>
-        </div>
-        <p class="blurb small">Tap a fighter to change them. Everyone for themselves, and the last one standing wins! Sharing a tablet? Each player gets their own corner. On a computer, Players 1 &amp; 2 use the keyboard and Players 3 &amp; 4 use gamepads.</p>
       </section>
 
       <!-- DIFFICULTY -->
@@ -182,17 +156,6 @@
               </ul>
             </div>
             <div class="card">
-              <h3>🪃 Boomerang Arena</h3>
-              <ul>
-                <li>Move in <b>every direction</b>. The little arrow shows which way you're aiming.</li>
-                <li>⭐ <b>Throws your boomerang.</b> It flies out and comes back, so catch it to throw again! It can hit on the way out <i>and</i> on the way back.</li>
-                <li>👊 <b>Swipe</b> anyone right next to you. 🦶 <b>Dash-kick</b> zooms forward, and you can use it to dodge!</li>
-                <li>⚡ Charge up and unleash your Ultimate, just like in normal fights.</li>
-                <li><b>Face-to-Face:</b> with 2 players on a tablet, lay it flat. Player 2's controls are on the far side, turned to face them.</li>
-                <li><b>🎉 4-Player Party:</b> up to 4 fighters, as players or CPUs, everyone for themselves. On a tablet each player gets a corner. On a computer, Players 3 &amp; 4 use gamepads.</li>
-              </ul>
-            </div>
-            <div class="card">
               <h3>🥧 Power-up Snacks</h3>
               <ul>
                 <li><b>Meat Pie:</b> gives you back some health.</li>
@@ -238,8 +201,6 @@
   <script src="js/fighter.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/game.js"></script>
-  <script src="js/arena-maps.js"></script>
-  <script src="js/arena.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>

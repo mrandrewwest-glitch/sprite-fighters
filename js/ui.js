@@ -43,7 +43,6 @@
     }
     const fighting = !id && ui.match && !ui.match.paused;
     $('#pause-btn').classList.toggle('hidden', !fighting);
-    $('#wrap').classList.toggle('table-mode', !!(fighting && ui.match.o.table));
     SF.Input.inFight = !!fighting;
     if (fighting && wantsTouch()) {
       SF.Input.buildTouch(ui.match.o.touchPlayers, ui.match.o.touchLayout);
@@ -69,7 +68,6 @@
     show(prev.screen);
     if (prev.screen === 'select') setupSelect();
     if (prev.screen === 'stage') setupStages();
-    if (prev.screen === 'party') renderParty();
   }
 
   function wantsTouch() {
@@ -100,22 +98,17 @@
   }
 
   // ------------------------------------------------------------ flow
-  const isArena = () => ui.flow.mode.startsWith('arena') || ui.flow.mode === 'party';
-  const isTwoPlayer = () => ui.flow.mode === '2p' || ui.flow.mode === 'arena2p';
+  const isTwoPlayer = () => ui.flow.mode === '2p';
 
   function startMode(mode) {
     ui.flow = { mode, step: 'p1', diff: 'medium', p1: null, p2: null, stage: null, sel: null };
-    if (mode === '2p' || mode === 'arena2p') go('select', 'p1');
+    if (mode === '2p') go('select', 'p1');
     else go('diff');
   }
 
   function confirmPick(id) {
     const f = ui.flow;
     SF.Audio.play('select');
-    if (f.step === 'slot') {
-      f.party[f.slot].id = id;
-      return back();
-    }
     if (f.step === 'p1') {
       f.p1 = id;
       if (f.mode === 'arcade') {
@@ -139,15 +132,12 @@
 
   function showVs() {
     const f = ui.flow;
-    if (f.mode === 'party') return beginParty();
     show('vs');
     SF.drawPortrait($('#vs-p1'), f.p1, { zoom: 0.9 });
     SF.drawPortrait($('#vs-p2'), f.p2, { zoom: 0.9, flip: true, alt: f.p1 === f.p2 });
     $('#vs-n1').textContent = SF.FIGHTERS[f.p1].name;
     $('#vs-n2').textContent = SF.FIGHTERS[f.p2].name;
-    const place = isArena() ? SF.ARENAS[f.stage] : SF.STAGES[f.stage];
-    let sub = place.emoji + ' ' + place.name;
-    if (isArena()) sub = '🪃 Boomerang Arena<br>' + sub;
+    let sub = SF.STAGES[f.stage].emoji + ' ' + SF.STAGES[f.stage].name;
     if (f.mode === 'arcade') sub = `Fight ${f.idx + 1} of ${f.ladder.length}<br>` + sub;
     $('#vs-stage').innerHTML = sub;
     SF.Audio.play('gong');
@@ -157,12 +147,9 @@
 
   function beginMatch() {
     clearTimeout(ui.vsTimer);
-    if (ui.flow.mode === 'party') return beginParty();
     if (ui.screen !== 'vs') return;
     const f = ui.flow;
     const vsCpu = !isTwoPlayer();
-    const arena = isArena();
-    const table = arena && !vsCpu && wantsTouch();
     const opts = {
       p1: f.p1,
       p2: f.p2,
@@ -171,22 +158,20 @@
         ? [{ type: 'human', slot: 0, merged: true }, { type: 'ai', level: f.diff }]
         : [{ type: 'human', slot: 0 }, { type: 'human', slot: 1 }],
       touchPlayers: vsCpu ? [0] : [0, 1],
-      touchLayout: table ? 'table' : vsCpu ? 'single' : 'split',
-      arena,
-      table,
+      touchLayout: vsCpu ? 'single' : 'split',
       rounds: SF.settings.rounds,
       timer: SF.settings.timer,
       onEnd: onMatchEnd,
     };
     ui.demo = null;
-    ui.match = arena ? new SF.ArenaMatch(opts) : new SF.Match(opts);
+    ui.match = new SF.Match(opts);
     ui.history = [];
     show(null);
   }
 
   function restartMatch() {
     const o = ui.match.o;
-    ui.match = o.arena ? new SF.ArenaMatch(o) : new SF.Match(o);
+    ui.match = new SF.Match(o);
     show(null);
   }
 
@@ -194,12 +179,8 @@
     if (match !== ui.match) return;
     const f = ui.flow;
     const wf = match.f[winner];
-    const humanWon = f.mode === 'party' ? match.isHuman(winner) : isTwoPlayer() || winner === 0;
+    const humanWon = isTwoPlayer() || winner === 0;
     let title = wf.def.name + ' WINS!';
-    if (f.mode === 'party') {
-      const tag = match.tagFor(winner);
-      title = `${wf.def.name} <span style="color:${tag.color}">(${tag.text})</span> WINS!`;
-    }
     let quote = '“' + wf.def.win + '”';
     const buttons = [];
     if (f.mode === 'arcade') {
@@ -218,9 +199,6 @@
         quote += '<br><br>Have another go, mate!';
         buttons.push(['🔄 Try Again', 'restart'], ['🏠 Main Menu', 'quit']);
       }
-    } else if (f.mode === 'party') {
-      if (!humanWon) quote += '<br><br>Have another go, mate!';
-      buttons.push(['🔄 Rematch', 'restart'], ['🎉 Change Party', 'party-change'], ['🏠 Main Menu', 'quit']);
     } else {
       if (!humanWon) quote += '<br><br>Have another go, mate!';
       buttons.push(['🔄 Rematch', 'restart'], ['👥 Change Fighters', 'change'], ['🏠 Main Menu', 'quit']);
@@ -246,95 +224,6 @@
     if (!ui.match) return;
     ui.match.paused = false;
     ui.history = [];
-    show(null);
-  }
-
-  // ------------------------------------------------------------ 4-player party
-  const DIFFS = [['easy', '🟢 Easy'], ['medium', '🟡 Medium'], ['hard', '🔴 Hard'], ['champion', '🏆 Champion']];
-
-  function startParty() {
-    const ids = SF.ROSTER.slice().sort(() => Math.random() - 0.5);
-    const keep = ui.flow.mode === 'party' && ui.flow.party;
-    ui.flow = {
-      mode: 'party', step: 'party', diff: keep ? ui.flow.diff : 'medium', sel: null,
-      party: keep || [0, 1, 2, 3].map((i) => ({ human: i === 0, id: ids[i] })),
-    };
-    go('party');
-    renderParty();
-  }
-
-  function renderParty() {
-    const f = ui.flow;
-    const root = $('#party-grid');
-    root.innerHTML = '';
-    f.party.forEach((slot, i) => {
-      const card = document.createElement('div');
-      card.className = 'party-slot' + (slot.human ? '' : ' cpu');
-      card.style.borderColor = SF.SLOT_COLORS[i];
-      const tag = document.createElement('div');
-      tag.className = 'slot-tag';
-      tag.style.color = SF.SLOT_COLORS[i];
-      tag.textContent = slot.human ? 'P' + (i + 1) : 'CPU ' + (i + 1);
-      const pick = document.createElement('button');
-      pick.className = 'btn pick';
-      const c = document.createElement('canvas');
-      c.width = 240;
-      c.height = 212;
-      pick.appendChild(c);
-      pick.addEventListener('click', () => {
-        f.slot = i;
-        go('select', 'slot');
-      });
-      const name = document.createElement('div');
-      name.className = 'slot-name';
-      name.textContent = SF.FIGHTERS[slot.id].name;
-      const who = document.createElement('button');
-      who.className = 'btn who' + (slot.human ? ' human' : '');
-      who.textContent = slot.human ? '🎮 Player' : '🤖 CPU';
-      if (i === 0) who.disabled = true;
-      who.addEventListener('click', () => {
-        slot.human = !slot.human;
-        renderParty();
-      });
-      card.append(tag, pick, name, who);
-      root.appendChild(card);
-      SF.drawPortrait(c, slot.id, { zoom: 0.78, bottom: 20, alt: f.party.slice(0, i).some((s) => s.id === slot.id) });
-    });
-    $('#party-diff').textContent = 'CPU: ' + DIFFS.find((d) => d[0] === f.diff)[1];
-  }
-
-  function beginParty() {
-    const f = ui.flow;
-    const humans = f.party.map((s, i) => (s.human ? i : -1)).filter((i) => i >= 0);
-    const touch = wantsTouch();
-    const many = humans.length > 2;
-    const controllers = f.party.map((s, i) => {
-      if (!s.human) return { type: 'ai', level: f.diff };
-      const k = humans.indexOf(i);
-      // Players 1-2 (in order) share the keyboard; with 3+ players, players 3-4 use gamepads 1-2.
-      return {
-        type: 'human', slot: i, merged: humans.length === 1,
-        keys: k < 2 ? k : -1,
-        pad: many ? (k >= 2 ? k - 2 : -1) : k,
-      };
-    });
-    const opts = {
-      fighters: f.party.map((s) => s.id),
-      stage: f.stage,
-      controllers,
-      touchPlayers: humans,
-      touchLayout: humans.length > 1 ? 'quad' : 'single',
-      arena: true,
-      table: touch && humans.length > 1,
-      party: true,
-      rounds: SF.settings.rounds,
-      timer: SF.settings.timer,
-      onEnd: onMatchEnd,
-    };
-    ui.demo = null;
-    ui.match = new SF.ArenaMatch(opts);
-    ui.history = [];
-    SF.Audio.play('gong');
     show(null);
   }
 
@@ -383,12 +272,6 @@
     $$('.card-f').forEach((c) => {
       c.classList.toggle('p1sel', f.step === 'p2' && c.dataset.id === f.p1);
     });
-    if (f.step === 'slot') {
-      const col = SF.SLOT_COLORS[f.slot];
-      $('#select-title').innerHTML = `<span style="color:${col}">Player ${f.slot + 1}</span>: choose a fighter`;
-      $$('.card-f').forEach((c) => c.classList.remove('p1sel'));
-      return selectFighter(f.party[f.slot].id);
-    }
     const start = f.step === 'p1' ? f.p1 || 'kip' : f.p2 || SF.ROSTER.find((x) => x !== f.p1);
     selectFighter(start);
   }
@@ -422,14 +305,8 @@
   // ------------------------------------------------------------ stage select
   function setupStages() {
     const root = $('#stage-grid');
-    const kind = isArena() ? 'arena' : 'stage';
-    $('#stage-title').textContent = kind === 'arena' ? 'Pick an arena' : 'Pick a stage';
-    if (root.dataset.kind === kind) return;
-    root.dataset.kind = kind;
-    root.innerHTML = '';
-    const list = kind === 'arena' ? SF.ARENA_LIST : SF.STAGE_LIST;
-    const info = kind === 'arena' ? SF.ARENAS : SF.STAGES;
-    list.concat(['random']).forEach((id) => {
+    if (root.children.length) return;
+    SF.STAGE_LIST.concat(['random']).forEach((id) => {
       const b = document.createElement('button');
       b.className = 'btn stage-card' + (id === 'random' ? ' random' : '');
       const c = document.createElement('canvas');
@@ -437,17 +314,17 @@
       c.height = 216;
       b.appendChild(c);
       const label = document.createElement('div');
-      label.textContent = id === 'random' ? '🎲 Random' : info[id].emoji + ' ' + info[id].name;
+      label.textContent = id === 'random' ? '🎲 Random' : SF.STAGES[id].emoji + ' ' + SF.STAGES[id].name;
       b.appendChild(label);
       b.addEventListener('click', () => {
-        ui.flow.stage = id === 'random' ? SF.pick(list) : id;
+        ui.flow.stage = id === 'random' ? SF.pick(SF.STAGE_LIST) : id;
         SF.Audio.play('select');
         showVs();
       });
       root.appendChild(b);
       if (id !== 'random') {
         // Paint thumbnails after the screen shows so it stays snappy.
-        setTimeout(() => (kind === 'arena' ? SF.drawArenaThumb(c, id) : SF.drawStageThumb(c, id)), 30);
+        setTimeout(() => SF.drawStageThumb(c, id), 30);
       } else {
         const cx = c.getContext('2d');
         cx.font = `120px ${SF.FONT}`;
@@ -510,22 +387,6 @@
       case 'mode-1p': return startMode('1p');
       case 'mode-2p': return startMode('2p');
       case 'mode-arcade': return startMode('arcade');
-      case 'mode-arena': return go('arena');
-      case 'arena-1p': return startMode('arena1p');
-      case 'arena-2p': return startMode('arena2p');
-      case 'party': return startParty();
-      case 'party-diff': {
-        const i = DIFFS.findIndex((d) => d[0] === ui.flow.diff);
-        ui.flow.diff = DIFFS[(i + 1) % DIFFS.length][0];
-        return renderParty();
-      }
-      case 'party-go': return go('stage');
-      case 'party-change':
-        ui.match = null;
-        startDemo();
-        ui.history = [{ screen: 'title', step: 'p1' }];
-        show('party');
-        return renderParty();
       case 'howto': return go('howto');
       case 'settings': return go('settings');
       case 'back': return back();
