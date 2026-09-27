@@ -61,7 +61,14 @@ SF.Fighter = class {
 
   // Walking speed, including the Lamington sugar rush.
   spd() {
-    return this.def.speed * (this.buff && this.buff.type === 'speed' ? 1.35 : 1);
+    return this.def.speed * (this.buff && this.buff.type === 'speed' ? 1.35 : 1) * (this.frenzied() ? 1.25 : 1);
+  }
+
+  // Sly speeds up when his opponent is nearly beaten.
+  frenzied() {
+    if (!this.def.frenzy || !this.m.opponentOf) return false;
+    const o = this.m.opponentOf(this);
+    return o.hp > 0 && o.hp < o.maxHp * 0.4;
   }
 
   setState(s) {
@@ -126,7 +133,7 @@ SF.Fighter = class {
     if (this.buffer && ++this.buffer.t > 10) this.buffer = null;
     if (this.buff && --this.buff.t <= 0) this.buff = null;
     if (this.buff && this.anim % 4 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.4, '#ff8ad8');
-    if (this.raging() && this.anim % 5 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.6, '#ff5a3c');
+    if ((this.raging() || this.frenzied()) && this.anim % 5 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.6, '#ff5a3c');
     const inp = this.inp;
 
     switch (this.state) {
@@ -252,7 +259,7 @@ SF.Fighter = class {
     this.vy = -this.def.jump;
     this.vx = dir * this.spd() * 1.05;
     this.setState('jump');
-    this.airJumps = this.def.doubleJump ? 1 : 0;
+    this.airJumps = this.def.airJumps != null ? this.def.airJumps : this.def.doubleJump ? 1 : 0;
     this.m.sfx('jump');
     this.m.fx.dust(this.x, SF.GROUND, false);
   }
@@ -268,6 +275,16 @@ SF.Fighter = class {
     if (b === 'punch' || b === 'kick' || (b === 'special' && this.def.moves.special.air)) {
       this.buffer = null;
       return this.startMove(b === 'punch' ? 'airPunch' : b === 'kick' ? 'airKick' : 'special');
+    }
+    const atWall = this.x <= SF.WALL_L + 4 || this.x >= SF.WALL_R - 4;
+    if (inp.pup && this.def.wallJump && atWall) {
+      const away = this.x < SF.W / 2 ? 1 : -1;
+      this.vy = -this.def.jump * 0.9;
+      this.vx = away * this.spd() * 1.4;
+      this.facing = away;
+      this.m.sfx('boing');
+      this.m.fx.dust(this.x, this.y - 40, false);
+      return;
     }
     if (inp.pup && this.airJumps > 0) {
       this.airJumps--;
@@ -314,6 +331,7 @@ SF.Fighter = class {
   }
 
   endMove() {
+    this.sink = 0;
     this.move = null;
     this.moveEnd = 0;
     this.curFrame = -1;
@@ -656,6 +674,43 @@ SF.Fighter = class {
             p.armB = 2.0;
             p.lean = 0.1;
             break;
+          case 'findive':
+            if (fr < 8) {
+              p.lean = 0.7;
+              p.armF = 2.8;
+              p.armB = 2.6;
+            } else {
+              p.armF = 2.6;
+              p.armB = 2.4;
+              p.lean = -0.1;
+              p.sy = 1.08;
+            }
+            break;
+          case 'teardrop':
+            p.armF = fr < 10 ? -2.4 : 1.4;
+            p.face = 'hurt';
+            p.sob = true;
+            break;
+          case 'pogo':
+            p.legF = 0;
+            p.legB = 0;
+            p.legFExt = fr < 12 ? 0.8 : 1.1;
+            p.legBExt = fr < 12 ? 0.8 : 1.1;
+            p.armF = 2.4;
+            p.armB = 2.2;
+            p.sy = fr < 12 ? 0.9 : 1.12;
+            p.tail = 0.3;
+            break;
+          case 'ram': {
+            const run = Math.sin(fr * 0.6);
+            p.lean = 0.65;
+            p.head = 0.5;
+            p.legF = run * 0.7;
+            p.legB = -run * 0.7;
+            p.armF = -0.6;
+            p.armB = -0.9;
+            break;
+          }
           case 'tailspin': {
             const a = SF.clamp((fr - 6) / 20, 0, 1) * Math.PI * 2;
             p.flip = Math.cos(a) >= 0 ? 1 : -1;
@@ -923,6 +978,50 @@ SF.Fighter = class {
         p.armF = 1.9 + Math.sin(t * 0.8) * 0.8;
         p.armB = 1.7 + Math.sin(t * 0.8 + 0.5) * 0.8;
         break;
+      case 'sly_call':
+        p.face = 'laugh';
+        p.armF = 2.7;
+        p.armB = 2.5;
+        p.head = -0.25;
+        break;
+      case 'cry_sob':
+        p.face = 'hurt';
+        p.sob = true;
+        p.armF = 2.6 + Math.sin(t * 0.9) * 0.2;
+        p.armB = 2.4;
+        p.bob = Math.sin(t * 0.9) * 2;
+        break;
+      case 'greg_ball':
+        p.sy = 0.75;
+        p.sx = 0.95;
+        p.legF = 1.4;
+        p.legB = 1.2;
+        p.legFExt = 0.6;
+        p.legBExt = 0.6;
+        p.armF = 1.6;
+        p.armB = 1.4;
+        p.lean = 0.5;
+        break;
+      case 'greg_kick':
+        p.legF = 1.5;
+        p.legFExt = 1.3;
+        p.legB = 0.8;
+        p.lean = -0.3;
+        p.armF = 2.2;
+        break;
+      case 'bud_climb':
+        p.face = 'grumpy';
+        p.armF = 1.2;
+        p.bob = Math.sin(t * 1.2) * 1.5;
+        break;
+      case 'bud_butt':
+        p.lean = 0.8;
+        p.head = 0.5;
+        p.armF = -1.2;
+        p.armB = -1.4;
+        p.legF = -0.6;
+        p.legB = -0.9;
+        break;
       case 'croc_recover':
       default:
         p.armF = 0.8;
@@ -1004,6 +1103,12 @@ SF.Fighter = class {
     else this.def.draw(ctx, p, this.pal);
     ctx.restore();
 
+    if (this.sink > 0.5 && this.def.drawSunk) {
+      ctx.save();
+      ctx.scale(this.facing, 1);
+      this.def.drawSunk(ctx, p, this.pal);
+      ctx.restore();
+    }
     if (this.state === 'dizzy' || (this.state === 'ko' && this.onGround())) {
       const hy = this.state === 'ko' ? -30 : -this.def.height - 10;
       const hx = this.state === 'ko' ? -this.facing * 90 : 0;

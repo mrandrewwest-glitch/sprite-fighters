@@ -629,7 +629,7 @@
     },
     shelly: {
       id: 'shelly', name: 'SHELLY', full: 'Shelly the Sea Turtle', emoji: '🐢', style: 'Shell Defender',
-      height: 136, width: 72, portraitDx: 8, health: 105, speed: 3.1, jump: 13.5, power: 0.98, defense: 1, gravity: 1.05,
+      height: 136, width: 72, portraitDx: 8, health: 108, speed: 3.1, jump: 13.5, power: 1.05, defense: 1, gravity: 1.05,
       walk: 'waddle', stats: { power: 3, speed: 2, health: 5, jump: 2 }, shell: true, projectile: true,
       passive: 'Hard Shell: blocking barely costs her any health',
       special: { name: 'Bubble Blast', desc: 'Blows a big wobbly bubble that floats along and traps the foe.' },

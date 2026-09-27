@@ -80,6 +80,25 @@
       D.line(ctx, 0, -52, 0, -70, 2, '#555');
       D.poly(ctx, [0, -70, 14, -65, 0, -60], '#e53935');
     },
+    snowman(ctx) {
+      D.ell(ctx, 0, -14, 20, 16, '#fff');
+      D.ell(ctx, 0, -40, 14, 12, '#fff');
+      D.ell(ctx, -4, -43, 2, 2, '#222', 0, false);
+      D.ell(ctx, 5, -43, 2, 2, '#222', 0, false);
+      D.poly(ctx, [0, -39, 12, -37, 0, -35], '#ff8a3c', false);
+      D.line(ctx, -12, -30, 12, -30, 5, '#e53935');
+      SF.roundRect(ctx, -10, -64, 20, 14, 3);
+      ctx.fillStyle = '#222';
+      ctx.fill();
+      ctx.fillRect(-14, -52, 28, 4);
+    },
+    snowgum(ctx, o) {
+      D.ell(ctx, 0, -8, 12, 8, '#e8dccb');
+      [[-18, -58, 30], [16, -64, 34], [0, -84, 30]].forEach(([x, y, r]) => {
+        D.ell(ctx, x, y, r, r * 0.8, '#6f8f67');
+        D.ell(ctx, x, y - r * 0.35, r * 0.8, r * 0.35, '#f7fbff', 0, false);
+      });
+    },
     log(ctx) {
       SF.roundRect(ctx, -44, -26, 88, 24, 12);
       ctx.fillStyle = '#8a5a3a';
@@ -269,8 +288,58 @@
     },
   };
 
-  SF.ARENAS = { outback, backyard, beach };
-  SF.ARENA_LIST = ['outback', 'backyard', 'beach'];
+  const snowfield = {
+    name: 'Kosciuszko Snowfield', emoji: '⛄',
+    obstacles: [
+      { x: 480, y: 290, r: 22, kind: 'snowman' },
+      { x: 150, y: 170, r: 30, kind: 'snowgum' },
+      { x: 820, y: 430, r: 30, kind: 'snowgum' },
+      { x: 780, y: 170, r: 22, kind: 'snowman' },
+      { x: 190, y: 420, r: 28, kind: 'rock' },
+      // frozen ponds: walk on them, but they're slippery!
+      { x: 300, y: 290, r: 70, kind: 'ice', flat: true, ice: true, solid: false },
+      { x: 660, y: 300, r: 80, kind: 'ice', flat: true, ice: true, solid: false },
+    ],
+    drawStatic(ctx) {
+      ctx.fillStyle = grad(ctx, 0, H, [[0, '#ffffff'], [1, '#e2ebf5']]);
+      ctx.fillRect(0, 0, W, H);
+      const rnd = SF.seeded(2228);
+      ctx.fillStyle = 'rgba(150,180,220,0.22)';
+      for (let i = 0; i < 40; i++) {
+        ctx.beginPath();
+        ctx.ellipse(rnd() * W, rnd() * H, 30 + rnd() * 50, 5 + rnd() * 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // sled tracks
+      ctx.strokeStyle = 'rgba(140,170,210,0.4)';
+      ctx.lineWidth = 3;
+      [0, 14].forEach((o) => {
+        ctx.beginPath();
+        ctx.moveTo(-10, 120 + o);
+        ctx.bezierCurveTo(300, 60 + o, 600, 520 + o, 980, 440 + o);
+        ctx.stroke();
+      });
+      // frozen ponds
+      [[300, 290, 70], [660, 300, 80]].forEach(([x, y, r]) => {
+        D.ell(ctx, x, y, r * 1.15, r * 0.75, '#bfe6ff');
+        D.ell(ctx, x - r * 0.3, y - r * 0.2, r * 0.4, r * 0.12, 'rgba(255,255,255,0.8)', -0.3, false);
+        D.line(ctx, x - r * 0.5, y + r * 0.2, x + r * 0.2, y - r * 0.1, 1.5, 'rgba(255,255,255,0.9)');
+      });
+    },
+    drawAnim(ctx, t) {
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      for (let i = 0; i < 70; i++) {
+        const x = (i * 53 + Math.sin(t * 0.02 + i) * 25 + t * 0.4) % W;
+        const y = (i * 37 + t * (0.6 + (i % 4) * 0.35)) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  };
+
+  SF.ARENAS = { outback, backyard, beach, snowfield };
+  SF.ARENA_LIST = ['outback', 'backyard', 'beach', 'snowfield'];
   SF.ARENA_OBJ = OBJ;
   SF.ARENA_OVER = OVER;
 

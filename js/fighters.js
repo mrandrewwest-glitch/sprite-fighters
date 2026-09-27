@@ -76,6 +76,18 @@
     D.ell(ctx, 36, 1, 5.5, 4.5, '#2a1a12', 0, false);
     D.eye(ctx, 9, -4, 6, p.face, t);
     D.mouth(ctx, 27, 13, 12, p.face);
+    if (c.cap) {
+      // backwards cap (Greg)
+      ctx.beginPath();
+      ctx.ellipse(-2, -12, 20, 12, 0, Math.PI, 0);
+      ctx.closePath();
+      ctx.fillStyle = c.cap;
+      ctx.fill();
+      ctx.lineWidth = D.LW;
+      ctx.strokeStyle = D.OUT;
+      ctx.stroke();
+      D.ell(ctx, -22, -12, 12, 4, c.cap, -0.2);
+    }
     ctx.restore();
     ctx.restore();
     kipLeg(ctx, 6, p.legF, p.legFExt, c.fur, c);

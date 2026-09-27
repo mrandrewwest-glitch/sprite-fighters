@@ -134,9 +134,11 @@
       }
     }
     apply(f, m) {
-      if (this.type === 'pie') f.hp = Math.min(f.maxHp, f.hp + 15);
-      if (this.type === 'vegemite') f.meter = Math.min(100, f.meter + 50);
-      if (this.type === 'lamington') f.buff = { type: 'speed', t: 480 };
+      const x2 = f.def.eatsAnything ? 2 : 1;
+      if (this.type === 'pie') f.hp = Math.min(f.maxHp, f.hp + 15 * x2);
+      if (this.type === 'vegemite') f.meter = Math.min(100, f.meter + 50 * x2);
+      if (this.type === 'lamington') f.buff = { type: 'speed', t: 480 * x2 };
+      if (x2 > 1) m.fx.text('NOM NOM x2!', f.x, f.y - f.def.height - 60, '#fff', 24);
       const s = SNACKS[this.type];
       m.fx.text(s.word, this.x, this.y - 90, s.color, 30);
       m.fx.spark(this.x, this.y, true, s.color);
@@ -353,6 +355,7 @@
           def.move = null;
           def.noGravity = false;
           def.spin = 0;
+          def.sink = 0;
           def.state = 'hurt';
           def.stateTime = 0;
           def.stun = p.stun;
@@ -388,6 +391,7 @@
       def.move = null;
       def.noGravity = false;
       def.spin = 0;
+      def.sink = 0;
       def.state = 'ko';
       def.stateTime = 0;
       def.vy = -10;

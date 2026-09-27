@@ -8,6 +8,7 @@ try {
   ({ chromium } = require(path.join(process.execPath, '../../lib/node_modules/playwright')));
 }
 const url = process.argv[2] || 'http://localhost:8123/';
+const SF_IDS = ['kip', 'koko', 'kooka', 'croc', 'spike', 'dotty', 'wombo', 'dash', 'taz', 'shelly', 'lizzie', 'cheeky', 'sly', 'cry', 'greg', 'bud'];
 const out = process.argv[3] || '.';
 
 (async () => {
@@ -75,7 +76,7 @@ const out = process.argv[3] || '.';
   console.log(report);
 
   // Screenshots of every arena ultimate mid-flight.
-  for (const id of ['kip', 'koko', 'kooka', 'croc', 'spike', 'dotty', 'wombo', 'dash', 'taz', 'shelly', 'lizzie', 'cheeky']) {
+  for (const id of SF_IDS) {
     await page.evaluate((id) => {
       const ui = SF.UI;
       ui.match = new SF.ArenaMatch({
@@ -89,7 +90,7 @@ const out = process.argv[3] || '.';
       m.f[0].x = 360; m.f[0].y = 300; m.f[1].x = 600; m.f[1].y = 260;
       m.f[0].meter = 100;
       m.f[0].buffer = { a: 'charge', t: 0 };
-      const n = { kip: 90, koko: 95, kooka: 110, croc: 100, spike: 80, dotty: 100, wombo: 118, dash: 80, taz: 100, shelly: 95, lizzie: 100, cheeky: 110 }[id];
+      const n = { kip: 90, koko: 95, kooka: 110, croc: 100, spike: 80, dotty: 100, wombo: 118, dash: 80, taz: 100, shelly: 95, lizzie: 100, cheeky: 110, sly: 100, cry: 115, greg: 100, bud: 104 }[id];
       for (let k = 0; k < n; k++) m.update();
       document.querySelectorAll('.screen').forEach((s) => s.classList.remove('show'));
       ui.screen = null;

@@ -2,7 +2,7 @@
 
 A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, battle through **Arcade** mode, or run around the top-down **🪃 Boomerang Arena**. It runs in the browser on computers, iPads and phones, with no install needed.
 
-## Fighters (all 12)
+## Fighters (16!)
 
 | Fighter | Style | ⭐ Special | ⚡ Ultimate |
 |---|---|---|---|
@@ -19,7 +19,16 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 | 🦎 **Lizzie the Frill-neck** | Trickster. Her frill scares attackers back when she blocks | Frill Scare (leaves the foe dizzy) | **Desert Dash Dazzle**: sprints back and forth in a blur, then a dazzling frill flash |
 | 🦜 **Cheeky the Cockatoo** | Noisy ranger. Double jump and slow fall | Screech (a sound wave; works in the air) | **Sulphur Crest Storm**: a flock of cockatoos dive-bombs from the sky, then a giant one |
 
-**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef and Cradle Mountain.
+**Designed by the kids:**
+
+| Fighter | Style | ⭐ Special | ⚡ Ultimate |
+|---|---|---|---|
+| 🦈 **Sly the Shark** (great white, with sunnies) | Bruiser. Frenzy: faster when his foe is nearly beaten | Fin Dive (sinks so only his fin shows, then bursts up with a CHOMP) | **Jaws of the Deep**: *dun-dun…* a fin circles the foe, then a giant shark leaps out of the ground |
+| ✨ **Cry the Dragonfly** | Flyer. Can flap 3 times in the air | Teardrop Toss (lobs a big tear; works in the air) | **Sob Storm**: "WAAAAH!" A rain cloud follows the foe pouring tears, then a big splash |
+| 🦘 **Greg the Wallaby** (Kip's cousin, backwards cap) | Bouncer. Wall-jumps off the sides | Pogo Stomp (springs up and stomps down) | **Pinball Hop**: ricochets off the walls, floor and sky, then a flying hop-kick |
+| 🐐 **Bud the Billy Goat** | Tank. Eats anything, so snacks give double power | Ram Charge (a head-down charge that nothing stops) | **Mega Butt**: a rock pillar shoots up under him, then a spinning mega headbutt |
+
+**Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef, Cradle Mountain and ❄️ Mt Kosciuszko (with falling snow, snow gums and a ski lift).
 
 ## 🪃 Boomerang Arena
 
@@ -31,7 +40,7 @@ A top-down mode where the fighters run around in every direction, inspired by pa
 - ⚡ Every fighter's Ultimate works here too, redesigned for the arena: Koko's falling gum tree, Wombo's poo cubes, Shelly's wave and so on.
 - Snacks and Drop Bears drop in too.
 - **Face-to-Face:** choose *2 Players Face-to-Face* on a tablet and lay it flat between the players. Player 2's joystick, buttons, health bar and the announcements are turned around to face them on the far side.
-- **Arenas:** Outback Clearing, Backyard BBQ (with a spinning Hills Hoist) and Beach Cricket.
+- **Arenas:** Outback Clearing, Backyard BBQ (with a spinning Hills Hoist), Beach Cricket and ⛄ Kosciuszko Snowfield (with snowmen and slippery frozen ponds to slide around on).
 
 ### 🎉 4-Player Party
 
@@ -95,7 +104,8 @@ js/draw.js          cartoon drawing helpers
 js/fighters.js      roster pack 1 (Kip, Koko, Kooka, Croc) + shared move helpers
 js/fighters2.js     roster pack 2 (Spike, Dotty, Wombo, Dash)
 js/fighters3.js     roster pack 3 (Taz, Shelly, Lizzie, Cheeky)
-js/stages.js        the eight stages
+js/fighters4.js     roster pack 4, designed by the kids (Sly, Cry, Greg, Bud)
+js/stages.js        the nine stages
 js/effects.js       particles, pop-up words, screen shake
 js/fighter.js       fighter state machine, physics and animation
 js/ai.js            CPU opponent and difficulty levels

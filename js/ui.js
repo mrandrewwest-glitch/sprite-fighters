@@ -348,13 +348,13 @@
       b.dataset.id = id;
       const c = document.createElement('canvas');
       c.width = 240;
-      c.height = 208;
+      c.height = 144;
       b.appendChild(c);
       const n = document.createElement('div');
       n.className = 'cn';
       n.textContent = SF.FIGHTERS[id].name;
       b.appendChild(n);
-      SF.drawPortrait(c, id, { zoom: 0.74, bottom: 44 });
+      SF.drawPortrait(c, id, { zoom: 0.92, bottom: 10 });
       b.addEventListener('click', () => {
         if (ui.flow.sel === id) confirmPick(id);
         else selectFighter(id, true);

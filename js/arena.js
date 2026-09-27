@@ -90,7 +90,15 @@
     }
 
     spd() {
-      return (2.3 + this.def.speed * 0.42) * (this.buff ? 1.35 : 1);
+      return (2.3 + this.def.speed * 0.42) * (this.buff ? 1.35 : 1) * (this.frenzied() ? 1.25 : 1);
+    }
+
+    frenzied() {
+      return !!this.def.frenzy && this.m.foesOf(this).some((o) => o.hp < o.maxHp * 0.4);
+    }
+
+    onIce() {
+      return this.m.ice.some((i) => Math.hypot((this.x - i.x) / 1.15, (this.y - i.y) / 0.75) < i.r);
     }
 
     raging() {
@@ -253,14 +261,17 @@
         if (this.st % 10 === 0) this.m.sfx('charge');
         return;
       }
+      const ice = this.onIce();
       if (d) {
         this.setState('run');
-        this.vx = d.x * this.spd();
-        this.vy = d.y * this.spd();
+        const k = ice ? 0.06 : 1;
+        this.vx += (d.x * this.spd() * (ice ? 1.3 : 1) - this.vx) * k;
+        this.vy += (d.y * this.spd() * (ice ? 1.3 : 1) - this.vy) * k;
       } else {
         this.setState('idle');
-        this.vx *= 0.5;
-        this.vy *= 0.5;
+        this.vx *= ice ? 0.985 : 0.5;
+        this.vy *= ice ? 0.985 : 0.5;
+        if (ice && Math.hypot(this.vx, this.vy) > 1 && this.anim % 6 === 0) this.m.fx.chargeBit(this.x, this.y + 10, '#dff4ff');
       }
     }
 
@@ -679,6 +690,19 @@
     drawBack(ctx) {
       if (this.t < 0 || this.phase !== 'warn') return;
       const k = Math.min(1, this.t / 10);
+      if (this.kind === 'shark') {
+        const a = this.t * 0.2;
+        ctx.save();
+        ctx.fillStyle = 'rgba(62,159,216,0.45)';
+        ctx.beginPath();
+        ctx.ellipse(this.x, this.y, this.radius * k, this.radius * 0.6 * k, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.translate(this.x + Math.cos(a) * this.radius * 0.7, this.y + Math.sin(a) * this.radius * 0.4);
+        ctx.scale(Math.sin(a) > 0 ? -1 : 1, 1);
+        D.poly(ctx, [-12, 0, -2, -28, 12, 0], '#7f8d99');
+        ctx.restore();
+        return;
+      }
       ctx.save();
       ctx.strokeStyle = `rgba(255,60,60,${0.5 + 0.4 * Math.sin(this.t * 0.5)})`;
       ctx.fillStyle = 'rgba(255,60,60,0.15)';
@@ -733,6 +757,29 @@
           for (let i = 0; i < 6; i++) D.ell(ctx, Math.cos(i + this.lt * 0.2) * this.radius * 0.8, -h + Math.sin(i) * 10, 8, 8, '#bfeaff', 0, false);
         }
         D.ell(ctx, 0, 0, this.radius, this.radius * 0.35, '#3e9fd8');
+      } else if (this.kind === 'shark') {
+        if (this.phase === 'land') {
+          const k = Math.min(1, this.lt / 4) * Math.max(0, 1 - this.lt / 30);
+          ctx.save();
+          ctx.scale(k, k);
+          D.ell(ctx, 0, 0, this.radius, this.radius * 0.35, '#3e9fd8');
+          D.poly(ctx, [-50, -10, -30, -130, 20, -150, 60, -40], '#7f8d99');
+          D.poly(ctx, [0, -20, 60, -60, 50, 0], '#f4f1ea');
+          for (let i = 0; i < 5; i++) D.poly(ctx, [-18 + i * 12, -118 + i * 16, -10 + i * 12, -106 + i * 16, -6 + i * 12, -122 + i * 16], '#fff');
+          D.eye(ctx, -4, -118, 7, 'attack', this.lt);
+          ctx.restore();
+        }
+      } else if (this.kind === 'tear') {
+        D.ell(ctx, 0, -10, 6, 9, '#6fd3ff');
+      } else if (this.kind === 'splash') {
+        if (this.phase === 'land') {
+          const r = this.radius * Math.min(1.2, 0.3 + this.lt / 12);
+          ctx.strokeStyle = 'rgba(111,211,255,0.9)';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r, r * 0.55, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        } else D.ell(ctx, 0, -20, 22, 30, '#6fd3ff');
       } else if (this.kind === 'bird') {
         const p = {
           t: this.t, bob: 0, lean: this.phase === 'fall' ? 1.3 : 0, head: 0, beak: 0.4, armF: 2.2, armB: 2.0,
@@ -1094,7 +1141,7 @@
         const dir = o.x >= f.x ? 1 : -1;
         const s = new Sweep(f, 'emus', dir, o.y);
         s.emus = [];
-        for (let i = 0; i < 8; i++) s.emus.push({ off: i * 70, y: SF.clamp(o.y + SF.rand(-50, 50), m.bounds.y0, m.bounds.y1) });
+        for (let i = 0; i < 8; i++) s.emus.push({ off: i * 60, y: SF.clamp(o.y + SF.rand(-30, 30), m.bounds.y0, m.bounds.y1) });
         s.emus[7].y = o.y;
         m.entities.push(s);
       });
@@ -1213,6 +1260,107 @@
     },
   };
 
+  // Roster pack 4 (the kids' fighters).
+  Object.assign(ULTS, {
+    sly(f, o, m, fr) {
+      f.ultPose = () => ({ face: 'laugh', armF: 2.7, armB: 2.5, head: -0.25 });
+      onceAt(fr, 2, () => {
+        m.fx.text('DUN-DUN... DUN-DUN...', f.x, f.y - 100, '#bfe3ff', 24);
+        strikes(f, [{ kind: 'shark', radius: 90, warn: 50, track: 38, big: true, word: 'CHOMP!', props: { dmg: 24, kb: 12, stun: 30, knockdown: true, big: true } }]);
+      });
+      if (fr >= 34) f.ult.vulnerable = true;
+      return fr >= 44;
+    },
+    cry(f, o, m, fr) {
+      f.ultPose = () => ({ face: 'hurt', sob: true, armF: 2.6, armB: 2.4, bob: Math.sin(f.anim * 0.9) * 2 });
+      onceAt(fr, 2, () => {
+        m.fx.text('WAAAAAH!', f.x, f.y - 100, '#6fd3ff', 34);
+        m.sfx('laugh');
+        const list = [];
+        for (let i = 0; i < 14; i++) {
+          list.push({ kind: 'tear', radius: 30, dx: SF.rand(-55, 55), dy: SF.rand(-35, 35), delay: 8 + i * 5, warn: 14, track: 10, props: { dmg: 2.5, kb: 2, stun: 16, light: true } });
+        }
+        list.push({ kind: 'splash', radius: 80, delay: 86, warn: 20, track: 16, big: true, word: 'BIG SPLASH!', props: { dmg: 8, kb: 10, stun: 26, knockdown: true, big: true } });
+        strikes(f, list);
+      });
+      if (fr >= 40) f.ult.vulnerable = true;
+      return fr >= 50;
+    },
+    greg(f, o, m, fr) {
+      const u = f.ult;
+      const b = m.bounds;
+      if (fr === 1) {
+        u.vx = 13 * (f.facing || 1);
+        u.vy = 9;
+        m.sfx('boing');
+        m.fx.text('PINBALL HOP!', f.x, f.y - 100, '#ffcf3f', 30);
+        f.ultPose = () => ({ sy: 0.75, legF: 1.4, legB: 1.2, legFExt: 0.6, legBExt: 0.6, armF: 1.6, lean: 0.5 });
+      }
+      if (fr < 84) {
+        const bounceX = (f.x <= b.x0 + 2 && u.vx < 0) || (f.x >= b.x1 - 2 && u.vx > 0);
+        const bounceY = (f.y <= b.y0 + 2 && u.vy < 0) || (f.y >= b.y1 - 2 && u.vy > 0);
+        if (bounceX || bounceY) {
+          // Each bounce ricochets back towards the target.
+          const aim = norm(o.x - f.x + SF.rand(-40, 40), o.y - f.y + SF.rand(-40, 40));
+          u.vx = aim.x * 15;
+          u.vy = aim.y * 15;
+          m.sfx('boing');
+        }
+        f.vx = u.vx;
+        f.vy = u.vy;
+        f.spin = fr * 0.5;
+        m.foesOf(f).forEach((e) => {
+          if (dist(f, e) < 44) m.hit(f, e, { id: 'pb' + Math.floor(fr / 12), dmg: 3.5, kb: 5, stun: 24, light: true }, f.x, f.y);
+        });
+        return false;
+      }
+      if (fr === 84) {
+        f.spin = 0;
+        f.vx = f.vy = 0;
+        f.setAim(norm(o.x - f.x, o.y - f.y));
+        f.ultPose = () => ({ legF: 1.5, legFExt: 1.3, legB: 0.8, lean: -0.3, armF: 2.2 });
+        m.foesOf(f).forEach((e) => f.melee(e, 'pbfinal', 90, 0.1, { dmg: 9, kb: 12, stun: 30, knockdown: true, big: true, word: 'HOP-KICK!' }));
+        u.vulnerable = true;
+      }
+      return fr >= 100;
+    },
+    bud(f, o, m, fr) {
+      const u = f.ult;
+      if (fr === 1) {
+        m.sfx('stomp');
+        m.fx.text('BAAAA!', f.x, f.y - 100, '#fff', 30);
+        f.noClamp = true;
+        f.ultPose = () => ({ face: 'grumpy', armF: 1.2 });
+      }
+      if (fr < 24) f.z += 16;
+      if (fr >= 24 && fr < 56) {
+        u.tx = u.tx == null ? f.x : u.tx + SF.clamp(o.x - u.tx, -7, 7);
+        u.ty = u.ty == null ? f.y : u.ty + SF.clamp(o.y - u.ty, -7, 7);
+        f.x = u.tx;
+        f.y = u.ty;
+        f.target = true;
+        f.spin = (fr - 24) * 0.4;
+        f.ultPose = () => ({ lean: 0.8, head: 0.5, armF: -1.2, armB: -1.4 });
+      }
+      if (fr >= 56 && f.z > 0) f.z = Math.max(0, f.z - 32);
+      if (fr >= 56 && f.z === 0 && !u.landed) {
+        u.landed = true;
+        f.spin = 0;
+        f.target = false;
+        f.noClamp = false;
+        m.fx.shake(20);
+        m.sfx('boom');
+        m.fx.shockwave(f.x, f.y);
+        m.fx.text('MEGA BUTT!', f.x, f.y - 110, '#fff', 32);
+        m.foesOf(f).forEach((e) => {
+          if (dist(f, e) < 110 + R) m.hit(f, e, { id: 'megabutt', dmg: 24, kb: 12, stun: 30, knockdown: true, big: true }, f.x, f.y);
+        });
+        u.vulnerable = true;
+      }
+      return !!u.landed && fr > 78;
+    },
+  });
+
   // ================================================================= hazards & snacks
   const SNACKS = {
     pie: { word: 'MEAT PIE! +HEALTH', color: '#8be15d' },
@@ -1235,9 +1383,11 @@
       for (const f of m.f) {
         if (['ko', 'down', 'grabbed', 'ultCine'].includes(f.state) || f.hidden) continue;
         if (Math.hypot(f.x - this.x, f.y - this.y) < 34) {
-          if (this.type === 'pie') f.hp = Math.min(f.maxHp, f.hp + 15);
-          if (this.type === 'vegemite') f.meter = Math.min(100, f.meter + 50);
-          if (this.type === 'lamington') f.buff = { t: 480 };
+          const x2 = f.def.eatsAnything ? 2 : 1;
+          if (this.type === 'pie') f.hp = Math.min(f.maxHp, f.hp + 15 * x2);
+          if (this.type === 'vegemite') f.meter = Math.min(100, f.meter + 50 * x2);
+          if (this.type === 'lamington') f.buff = { t: 480 * x2 };
+          if (x2 > 1) m.fx.text('NOM NOM x2!', f.x, f.y - 100, '#fff', 20);
           const s = SNACKS[this.type];
           m.fx.text(s.word, this.x, this.y - 70, s.color, 26);
           m.fx.spark(this.x, this.y - 20, true, s.color);
@@ -1480,7 +1630,8 @@
     constructor(o) {
       this.o = o;
       this.arena = SF.ARENAS[o.stage];
-      this.obstacles = this.arena.obstacles;
+      this.obstacles = this.arena.obstacles.filter((ob) => ob.solid !== false);
+      this.ice = this.arena.obstacles.filter((ob) => ob.ice);
       this.bounds = o.table ? { x0: 40, x1: 920, y0: 110, y1: 450 } : { x0: 40, x1: 920, y0: 118, y1: 505 };
       const ids = o.fighters || [o.p1, o.p2];
       this.f4 = ids.length > 2;
@@ -1837,6 +1988,7 @@
       list.sort((a, b) => a.y - b.y).forEach((d) => d.draw());
       top.forEach((e) => e.draw(ctx));
       this.obstacles.forEach((o) => o.over && SF.ARENA_OVER[o.over](ctx, o, this.t));
+      if (this.arena.drawAnim) this.arena.drawAnim(ctx, this.t);
       this.fx.draw(ctx);
       ctx.restore();
 

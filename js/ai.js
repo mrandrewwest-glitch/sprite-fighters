@@ -66,6 +66,9 @@ SF.AI = class {
         return opp.onGround() && dist > 120;
       case 'taz':
         return dist < 320;
+      case 'sly':
+      case 'bud':
+        return opp.onGround();
       case 'shelly':
       case 'lizzie':
         return opp.onGround();

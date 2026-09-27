@@ -691,7 +691,7 @@
     },
     wombo: {
       id: 'wombo', name: 'WOMBO', full: 'Wombo the Wombat', emoji: '🟫', style: 'Heavy Bruiser',
-      height: 132, width: 80, portraitDx: 0, health: 120, speed: 2.9, jump: 12.5, power: 1.1, defense: 0.92, gravity: 1.1,
+      height: 132, width: 80, portraitDx: 0, health: 115, speed: 2.9, jump: 12.5, power: 1.04, defense: 0.94, gravity: 1.1,
       walk: 'waddle', stats: { power: 5, speed: 1, health: 5, jump: 1 },
       passive: 'Tough Rump: his Bum Bump keeps going through small hits',
       special: { name: 'Bum Bump', desc: 'Turns around and charges bum-first. Nothing stops that rump!' },

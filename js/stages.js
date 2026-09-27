@@ -1011,8 +1011,141 @@
     },
   };
 
-  SF.STAGES = { uluru, bondi, rainforest, harbour, billabong, dunny, reef, tassie };
-  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour', 'billabong', 'dunny', 'reef', 'tassie'];
+  // ------------------------------------------------------------- MT KOSCIUSZKO (snowing!)
+  function snowGum(ctx, x, y, s) {
+    ctx.strokeStyle = '#e8dccb';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 12 * s;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x - 20 * s, y - 60 * s, x + 30 * s, y - 90 * s, x + 6 * s, y - 150 * s);
+    ctx.stroke();
+    ctx.lineWidth = 7 * s;
+    ctx.beginPath();
+    ctx.moveTo(x + 8 * s, y - 90 * s);
+    ctx.quadraticCurveTo(x + 50 * s, y - 110 * s, x + 56 * s, y - 140 * s);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(200,120,90,0.45)';
+    ctx.lineWidth = 3 * s;
+    ctx.beginPath();
+    ctx.moveTo(x - 4 * s, y - 30 * s);
+    ctx.lineTo(x + 2 * s, y - 60 * s);
+    ctx.stroke();
+    [[0, -160, 34], [44, -150, 28], [-26, -140, 24]].forEach(([dx, dy, r]) => {
+      D.ell(ctx, x + dx * s, y + dy * s, r * s, r * 0.6 * s, '#6f8f67', 0, false);
+      D.ell(ctx, x + dx * s, y + (dy - r * 0.35) * s, r * 0.8 * s, r * 0.28 * s, '#f7fbff', 0, false);
+    });
+  }
+
+  const kosciuszko = {
+    name: 'Mt Kosciuszko', emoji: '❄️',
+    drawStatic(ctx) {
+      const rnd = SF.seeded(2228);
+      ctx.fillStyle = grad(ctx, 0, 380, [[0, '#9fb5cf'], [1, '#e8eef6']]);
+      ctx.fillRect(0, 0, W, 380);
+      // far snowy ridges
+      ctx.fillStyle = '#c9d6e6';
+      ctx.beginPath();
+      ctx.moveTo(0, 300);
+      [[120, 240], [260, 270], [420, 200], [560, 250], [700, 215], [860, 260], [960, 235]].forEach(([x, y]) => ctx.lineTo(x, y));
+      ctx.lineTo(W, 380);
+      ctx.lineTo(0, 380);
+      ctx.fill();
+      // the summit with its cairn
+      ctx.fillStyle = '#f4f7fb';
+      ctx.beginPath();
+      ctx.moveTo(250, 380);
+      ctx.quadraticCurveTo(440, 150, 520, 150);
+      ctx.quadraticCurveTo(620, 160, 820, 380);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(120,150,190,0.25)';
+      ctx.beginPath();
+      ctx.moveTo(520, 150);
+      ctx.quadraticCurveTo(620, 160, 820, 380);
+      ctx.lineTo(600, 380);
+      ctx.fill();
+      ctx.fillStyle = '#8a8f99';
+      ctx.beginPath();
+      ctx.moveTo(505, 152);
+      ctx.lineTo(512, 120);
+      ctx.lineTo(528, 120);
+      ctx.lineTo(535, 152);
+      ctx.fill();
+      ctx.fillStyle = '#f4f7fb';
+      ctx.fillRect(509, 116, 22, 6);
+      // ski lift towers and cable
+      ctx.strokeStyle = '#555c66';
+      ctx.lineWidth = 4;
+      [[140, 390], [330, 300], [520, 210]].forEach(([x, y]) => {
+        ctx.beginPath();
+        ctx.moveTo(x, y + 50);
+        ctx.lineTo(x, y);
+        ctx.moveTo(x - 14, y);
+        ctx.lineTo(x + 14, y);
+        ctx.stroke();
+      });
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(126, 390);
+      ctx.lineTo(506, 210);
+      ctx.moveTo(154, 390);
+      ctx.lineTo(534, 210);
+      ctx.stroke();
+      // ski lodge
+      ctx.fillStyle = '#8a4b2a';
+      ctx.fillRect(700, 330, 110, 60);
+      D.poly(ctx, [690, 334, 755, 290, 820, 334], '#f4f7fb');
+      ctx.fillStyle = '#ffd86b';
+      ctx.fillRect(716, 348, 18, 16);
+      ctx.fillRect(776, 348, 18, 16);
+      ctx.fillStyle = '#3a2a1a';
+      ctx.fillRect(745, 356, 20, 34);
+      // snowy ground
+      ctx.fillStyle = grad(ctx, 385, H, [[0, '#ffffff'], [1, '#dfe8f3']]);
+      ctx.fillRect(0, 385, W, H - 385);
+      ctx.fillStyle = 'rgba(150,180,220,0.25)';
+      for (let i = 0; i < 30; i++) {
+        ctx.beginPath();
+        ctx.ellipse(rnd() * W, 400 + rnd() * 140, 30 + rnd() * 40, 4 + rnd() * 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      snowGum(ctx, 40, 420, 1.1);
+      snowGum(ctx, 915, 425, 0.95);
+      // snowman
+      D.ell(ctx, 640, 412, 22, 18, '#fff');
+      D.ell(ctx, 640, 384, 15, 13, '#fff');
+      D.ell(ctx, 635, 381, 2, 2, '#222', 0, false);
+      D.ell(ctx, 645, 381, 2, 2, '#222', 0, false);
+      D.poly(ctx, [640, 386, 654, 389, 640, 391], '#ff8a3c', false);
+      D.line(ctx, 628, 393, 652, 393, 5, '#e53935');
+      D.line(ctx, 624, 408, 606, 396, 3, '#6b4a2a');
+      D.line(ctx, 656, 408, 674, 396, 3, '#6b4a2a');
+    },
+    drawAnim(ctx, t) {
+      // ski lift chairs gliding up the cable
+      for (let i = 0; i < 4; i++) {
+        const k = ((t * 0.002 + i / 4) % 1);
+        const x = 140 + k * 380;
+        const y = 390 - k * 180;
+        D.line(ctx, x, y, x, y + 16, 2, '#555c66');
+        ctx.fillStyle = i % 2 ? '#e53935' : '#2f7fd0';
+        ctx.fillRect(x - 9, y + 16, 18, 8);
+      }
+      // falling snow (two layers)
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      for (let i = 0; i < 90; i++) {
+        const sp = 0.6 + (i % 4) * 0.35;
+        const x = (i * 53 + Math.sin(t * 0.02 + i) * 25 + t * 0.4) % W;
+        const y = (i * 37 + t * sp) % H;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
+  };
+
+  SF.STAGES = { uluru, bondi, rainforest, harbour, billabong, dunny, reef, tassie, kosciuszko };
+  SF.STAGE_LIST = ['uluru', 'bondi', 'rainforest', 'harbour', 'billabong', 'dunny', 'reef', 'tassie', 'kosciuszko'];
 
   const cache = {};
   function staticCanvas(id) {
