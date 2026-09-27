@@ -44,7 +44,8 @@ Play against a friend on another device (iPad, phone or computer), on the same w
 - The devices connect directly to each other (WebRTC), using the free public [PeerJS](https://peerjs.com) server only to introduce them. The PeerJS library (MIT licence) is bundled in `js/vendor/`.
 - It uses *lockstep* netcode. Both devices run the same fight and send only button presses, each scheduled 4 frames (about 1/15 of a second) ahead so it has time to arrive. Random events (snacks, Drop Bears) use a shared seed so both screens match exactly. As a safety net, the host sends a small check every second and the guest quietly corrects any tiny drift.
 - If a press is late, the game briefly waits and shows "Waiting for your friend…". Online games can't be paused.
-- Some very strict networks (for example some school or work wifi) block direct device-to-device connections.
+- Some very strict networks (for example some school or work wifi) block direct device-to-device connections. If the devices can't link, the joining device retries automatically, then shows tips and a small diagnostic line (`why / ice / paths`). The host's room stays open so the friend can try again.
+- Connections use several free STUN servers plus PeerJS's free TURN relays. For the most reliable connections across different networks (for example home wifi vs mobile data), add your own TURN server (e.g. a free [metered.ca](https://www.metered.ca/stun-turn) account) to `EXTRA_TURN` in `js/net.js`.
 
 ## How to play
 
@@ -128,4 +129,6 @@ node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates p
 node tools/net-test.js http://localhost:8123/           # online: two copies of a match must stay in exact sync
 PEER_SERVER=127.0.0.1:9000/sf node tools/online-test.js http://localhost:8123/ /tmp
                                                         # online: two real browser windows (needs a local `peerjs` server)
+PEER_SERVER=127.0.0.1:9000/sf node tools/online-fail-test.js http://localhost:8123/ /tmp
+                                                        # online: a link that can't connect -> retries, tips, room stays open
 ```

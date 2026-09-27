@@ -15,6 +15,22 @@
   const WORDS = ['KOALA', 'WOMBAT', 'EMU', 'ROO', 'CROC', 'DINGO', 'GALAH', 'QUOKKA', 'BILBY', 'NUMBAT', 'POSSUM', 'PLATY', 'ECHIDNA', 'KOOKA', 'WALLABY', 'GOANNA'];
   const ACTIONS = SF.ACTIONS;
 
+  // Servers that help two devices find a path to each other.
+  // STUN: lets each device learn its public address (free, many providers).
+  // TURN: relays the game when a direct path is impossible (e.g. some mobile
+  // networks). PeerJS's own free TURN relays are included; for the best
+  // reliability add your own (e.g. a free metered.ca account) to EXTRA_TURN.
+  const EXTRA_TURN = [
+    // { urls: 'turn:YOUR-SERVER:3478', username: '...', credential: '...' },
+  ];
+  const ICE_SERVERS = [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  ].concat(EXTRA_TURN);
+  const LINK_TIMEOUT = 15000;
+  const JOIN_TRIES = 3;
+
   // Keep an untouched Math.random for things that must not use the shared seed.
   SF.realRandom = Math.random;
 
@@ -69,11 +85,11 @@
       await this.loadLib();
       this.role = 'host';
       this.code = this.makeCode();
-      const peer = new window.Peer(PREFIX + this.code, Object.assign({ debug: 0 }, this.serverOptions));
+      const peer = new window.Peer(PREFIX + this.code, this.peerOptions());
       this.peer = peer;
       peer.on('open', () => this.emit('status', 'waiting', this.code));
       peer.on('connection', (c) => {
-        if (this.conn) {
+        if (this.conn && this.conn.open) {
           c.on('open', () => {
             c.send({ t: 'full' });
             setTimeout(() => c.close(), 300);
@@ -84,6 +100,8 @@
       });
       peer.on('error', (e) => {
         if (e.type === 'unavailable-id' && tries < 4) return this.host(tries + 1);
+        // A failed join attempt shouldn't close the room: keep waiting for the friend.
+        if (!(this.conn && this.conn.open) && ['peer-unavailable', 'webrtc', 'negotiation-failed'].includes(e.type)) return;
         this.emit('error', friendlyError(e));
       });
       peer.on('disconnected', () => {
@@ -97,26 +115,82 @@
       await this.loadLib();
       this.role = 'guest';
       this.code = this.normaliseCode(code);
-      const peer = new window.Peer(Object.assign({ debug: 0 }, this.serverOptions));
+      this.joinTry = 0;
+      const peer = new window.Peer(this.peerOptions());
       this.peer = peer;
-      peer.on('open', () => {
-        this.emit('status', 'joining', this.code);
-        this.setupConn(peer.connect(PREFIX + this.code, { reliable: true }));
+      peer.on('open', () => this.tryJoin());
+      peer.on('error', (e) => {
+        if (this.conn && this.conn.open) return;
+        if (['webrtc', 'negotiation-failed'].includes(e.type)) return; // handled by the link timeout/retry
+        this.emit('error', friendlyError(e));
       });
-      peer.on('error', (e) => this.emit('error', friendlyError(e)));
+    },
+
+    peerOptions() {
+      return Object.assign({ debug: 0, config: { iceServers: ICE_SERVERS } }, this.serverOptions);
+    },
+
+    tryJoin() {
+      if (!this.peer || this.role !== 'guest') return;
+      this.joinTry++;
+      this.emit('status', 'joining', this.code, this.joinTry, JOIN_TRIES);
+      this.setupConn(this.peer.connect(PREFIX + this.code, { reliable: true }));
     },
 
     setupConn(c) {
       this.conn = c;
-      c.on('open', () => this.emit('connected'));
+      let opened = false;
+      let failed = false;
+      const types = new Set();
+      const watch = () => {
+        const pc = c.peerConnection;
+        if (!pc || pc.__sfWatched) return;
+        pc.__sfWatched = true;
+        pc.addEventListener('icecandidate', (e) => {
+          const m = e.candidate && / typ (\w+)/.exec(e.candidate.candidate);
+          if (m) types.add(m[1]);
+        });
+      };
+      watch();
+      setTimeout(watch, 0);
+      setTimeout(watch, 500);
+      const fail = (why) => {
+        if (opened || failed) return;
+        failed = true;
+        clearTimeout(timer);
+        const pc = c.peerConnection;
+        const detail = ['why: ' + why, 'ice: ' + (pc ? pc.iceConnectionState : 'none'), 'paths: ' + ([...types].join('/') || 'none')].join(', ');
+        if (this.conn === c) this.conn = null;
+        try {
+          c.close();
+        } catch (e) {
+          /* already closed */
+        }
+        // The joining device quietly tries again a couple of times.
+        if (this.role === 'guest' && this.joinTry < JOIN_TRIES && this.peer) {
+          setTimeout(() => this.tryJoin(), 800);
+          return;
+        }
+        this.emit('linkfail', detail);
+      };
+      const timer = setTimeout(() => fail('timeout'), LINK_TIMEOUT);
+      c.on('open', () => {
+        opened = true;
+        clearTimeout(timer);
+        this.emit('connected');
+      });
       c.on('data', (d) => {
         if (d && d.t === 'full') return this.emit('error', 'That room already has two players.');
         this.emit('data', d);
       });
       c.on('close', () => {
+        if (!opened) return fail('closed');
         if (this.conn === c) this.emit('closed');
       });
-      c.on('error', () => this.emit('closed'));
+      c.on('error', () => {
+        if (!opened) return fail('error');
+        if (this.conn === c) this.emit('closed');
+      });
     },
 
     send(obj) {

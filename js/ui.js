@@ -288,7 +288,10 @@
     }
   }
 
-  SF.Net.on('status', (state, code) => {
+  SF.Net.on('status', (state, code, attempt, max) => {
+    if (state === 'joining' && attempt > 1) {
+      setOnlineStatus(`<div class="spinner"></div>Still trying to link up with <b>${code}</b>… (try ${attempt} of ${max})`);
+    }
     if (state === 'waiting') {
       setOnlineStatus(
         `<p>Tell your friend this room code:</p><div class="room-code">${code}</div>` +
@@ -311,6 +314,28 @@
   });
 
   SF.Net.on('closed', () => friendLeft());
+
+  // The two devices found each other but couldn't open a direct link.
+  SF.Net.on('linkfail', (detail) => {
+    const tips =
+      '<ul class="tips">' +
+      "<li>Keep the game open and the screen on, on <b>both</b> devices, until you're connected.</li>" +
+      '<li>Try both devices on the same home wifi (not a guest network).</li>' +
+      '<li>School, work or hotel wifi often blocks this. Try mobile data or another network.</li>' +
+      '</ul>';
+    const diag = `<p class="diag">${detail}</p>`;
+    if (SF.Net.role === 'host') {
+      // The room stays open, so the friend can simply try joining again.
+      setOnlineStatus(
+        `<p>Tell your friend this room code:</p><div class="room-code">${SF.Net.code}</div>` +
+          "<p class=\"err small\">A friend tried to join, but the two devices couldn't link up. They can try again.</p>" +
+          tips + diag
+      );
+      return;
+    }
+    SF.Net.close();
+    setOnlineStatus("<p class=\"err\">😕 Couldn't link the two devices together.</p>" + tips + diag, true);
+  });
 
   SF.Net.on('data', (msg) => {
     if (!msg || !msg.t) return;

@@ -377,3 +377,6 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.online-status .tips { text-align: left; font-size: calc(var(--u) * 15); margin: calc(var(--u) * 6) auto; max-width: calc(var(--u) * 600); }
+.online-status .diag { font-family: ui-monospace, monospace; font-size: calc(var(--u) * 11); opacity: 0.55; }
