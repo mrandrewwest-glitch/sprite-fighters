@@ -232,7 +232,14 @@
       this.banner = null;
       this.paused = false;
       this.ended = false;
-      this.startRound(true);
+      // Online, even the first round's random timers must come from the shared seed.
+      const realRandom = Math.random;
+      if (o.net) Math.random = o.net.rng;
+      try {
+        this.startRound(true);
+      } finally {
+        Math.random = realRandom;
+      }
     }
 
     sfx(n) {
@@ -399,15 +406,47 @@
     }
 
     readCtrl(i) {
+      if (this.netInputs) return this.netInputs[i];
       const c = this.ctrl[i];
       if (c instanceof SF.AI) return c.update(this.f[i], this.f[1 - i], this);
       return SF.Input.read(c.slot, c.merged);
     }
 
     update() {
+      const net = this.o.net;
+      if (!net) return this.step();
+      // Online: only advance when both players' buttons for this frame have arrived.
+      this.netFrame = this.netFrame || 0;
+      net.sample(this.netFrame);
+      if (!net.ready(this.netFrame)) {
+        net.stall++;
+        return;
+      }
+      net.stall = 0;
+      this.netInputs = net.inputsFor(this.netFrame);
+      const realRandom = Math.random;
+      Math.random = net.rng;
+      try {
+        this.step();
+      } finally {
+        Math.random = realRandom;
+      }
+      net.afterFrame(this, this.netFrame);
+      this.netFrame++;
+    }
+
+    step() {
       this.t++;
       if (this.paused) return;
       if (this.banner && ++this.banner.t > this.banner.dur) this.banner = null;
+
+      // Read buttons every frame (even during hit-freeze and cinematics) so no press is lost.
+      const fighting = this.roundState === 'fight';
+      this.f.forEach((f, i) => {
+        // Humans are always read so taps made before "FIGHT!" are thrown away.
+        const raw = fighting || this.isHuman(i) ? this.readCtrl(i) : null;
+        f.setInput(fighting ? raw : SF.blankInput());
+      });
 
       if (this.cine) {
         this.cine.t++;
@@ -432,12 +471,6 @@
       }
       this.frame++;
 
-      const fighting = this.roundState === 'fight';
-      this.f.forEach((f, i) => {
-        // Humans are always read so taps made before "FIGHT!" are thrown away.
-        const raw = fighting || this.isHuman(i) ? this.readCtrl(i) : null;
-        f.setInput(fighting ? raw : SF.blankInput());
-      });
       this.f[0].update(this.f[1]);
       this.f[1].update(this.f[0]);
       this.push(this.f[0], this.f[1]);
@@ -451,14 +484,14 @@
       this.entities = this.entities.filter((e) => !e.dead);
       this.fx.update();
 
-      if (fighting && SF.settings.dropBears && !this.o.noBears) {
+      if (fighting && (this.o.dropBears != null ? this.o.dropBears : SF.settings.dropBears) && !this.o.noBears) {
         if (--this.bearTimer <= 0) {
           this.bearTimer = SF.rand(900, 1500);
           this.addEntity(new DropBear(SF.pick(this.f).x));
         }
       }
 
-      if (fighting && SF.settings.powerUps && !this.o.noSnacks && --this.snackTimer <= 0) {
+      if (fighting && (this.o.powerUps != null ? this.o.powerUps : SF.settings.powerUps) && !this.o.noSnacks && --this.snackTimer <= 0) {
         this.snackTimer = SF.rand(720, 1080);
         if (!this.entities.some((e) => e.isPowerUp)) {
           this.addEntity(new PowerUp(SF.pick(Object.keys(SNACKS)), SF.rand(140, SF.W - 140)));
@@ -658,6 +691,13 @@
       if (!this.o.noHud) this.drawHud(ctx);
       if (this.quotes && this.roundState === 'intro' && this.introT < 110) this.drawQuotes(ctx);
       if (this.banner) this.drawBanner(ctx);
+      if (this.o.net && this.o.net.stall > 45) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(10,5,30,0.55)';
+        ctx.fillRect(0, H / 2 - 40, W, 80);
+        SF.outlineText(ctx, 'Waiting for your friend…', W / 2, H / 2, 34, '#ffd24a');
+        ctx.restore();
+      }
     }
 
     drawRank(f) {
@@ -673,6 +713,7 @@
       const humans = this.ctrl.filter((c) => !(c instanceof SF.AI)).length;
       if (humans === 0) return null;
       if (!human) return { text: 'CPU', color: '#c9c9c9' };
+      if (this.o.net) return side === this.o.net.local ? { text: 'YOU', color: '#5ad17a' } : { text: 'FRIEND', color: '#ffd24a' };
       return { text: 'P' + (side + 1), color: side === 0 ? '#ff6b6b' : '#4ab3ff' };
     }
 

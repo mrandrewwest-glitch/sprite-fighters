@@ -13,7 +13,7 @@ SF.Audio = (() => {
         master.connect(ctx.destination);
         noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
         const d = noiseBuf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        for (let i = 0; i < d.length; i++) d[i] = (SF.realRandom || Math.random)() * 2 - 1;
       } catch (e) {
         ctx = null;
         return;
@@ -93,7 +93,7 @@ SF.Audio = (() => {
       tone(400, 0.05, { type: 'square', vol: 0.15, slide: 150, delay: 0.08 });
     },
     spin() { noise(0.3, { vol: 0.15, freq: 400, slide: 3000, filter: 'bandpass' }); },
-    charge() { tone(220 + Math.random() * 60, 0.08, { type: 'sine', vol: 0.06, slide: 440 }); },
+    charge() { tone(220 + (SF.realRandom || Math.random)() * 60, 0.08, { type: 'sine', vol: 0.06, slide: 440 }); },
     ready() {
       [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.12, { type: 'square', vol: 0.07, delay: i * 0.06 }));
     },

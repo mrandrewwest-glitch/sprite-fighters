@@ -1,5 +1,5 @@
 // Offline support: serve from the network when possible, fall back to the cache.
-const CACHE = 'sprite-fighters-v6';
+const CACHE = 'sprite-fighters-v7';
 const ASSETS = [
   './',
   'index.html',
@@ -11,6 +11,8 @@ const ASSETS = [
   'js/util.js',
   'js/audio.js',
   'js/input.js',
+  'js/net.js',
+  'js/vendor/peerjs.min.js',
   'js/draw.js',
   'js/fighters.js',
   'js/fighters2.js',

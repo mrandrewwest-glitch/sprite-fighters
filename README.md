@@ -1,6 +1,6 @@
 # 🦘 Sprite Fighters: Outback Brawl 🐨
 
-A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device** or battle through **Arcade** mode. It runs in the browser on computers, iPads and phones, with no install needed.
+A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1 player vs CPU**, **2 players on one device**, battle through **Arcade** mode, or **🌏 play online** against a friend on another device. It runs in the browser on computers, iPads and phones, with no install needed.
 
 ## Fighters (16!)
 
@@ -29,6 +29,22 @@ A cartoon fighting game starring Aussie animals, suitable for all ages. Play **1
 | 🐐 **Bud the Billy Goat** | Tank. Eats anything, so snacks give double power | Ram Charge (a head-down charge that nothing stops) | **Mega Butt**: a rock pillar shoots up under him, then a spinning mega headbutt |
 
 **Stages:** Uluru Sunset, Bondi Beach BBQ, Rainforest Canopy, Sydney Harbour Night, The Billabong, The Outback Dunny, Great Barrier Reef, Cradle Mountain and ❄️ Mt Kosciuszko (with falling snow, snow gums and a ski lift).
+
+## 🌏 Play Online with a Friend
+
+Play against a friend on another device (iPad, phone or computer), on the same wifi or far away over the internet.
+
+1. One player taps **🌏 Play Online → Make a Room** and gets a code like **KOALA-42**.
+2. The other player taps **🌏 Play Online** on their own device, types the code and taps **Join**.
+3. You each pick a fighter on your own device, then the room maker picks the stage. Fight! Afterwards you can rematch or change fighters.
+
+**Friends only:** there's no matchmaking with strangers and no chat. Only someone you give the code to can join, and a room holds just two players.
+
+**How it works:**
+- The devices connect directly to each other (WebRTC), using the free public [PeerJS](https://peerjs.com) server only to introduce them. The PeerJS library (MIT licence) is bundled in `js/vendor/`.
+- It uses *lockstep* netcode. Both devices run the same fight and send only button presses, each scheduled 4 frames (about 1/15 of a second) ahead so it has time to arrive. Random events (snacks, Drop Bears) use a shared seed so both screens match exactly. As a safety net, the host sends a small check every second and the guest quietly corrects any tiny drift.
+- If a press is late, the game briefly waits and shows "Waiting for your friend…". Online games can't be paused.
+- Some very strict networks (for example some school or work wifi) block direct device-to-device connections.
 
 ## How to play
 
@@ -79,6 +95,8 @@ css/style.css       menus, touch controls, responsive scaling
 js/util.js          constants, helpers, saved settings
 js/audio.js         synthesised sound effects + victory music
 js/input.js         keyboard, gamepad and touch controls
+js/net.js           online play: room codes (PeerJS) and lockstep netcode
+js/vendor/          bundled PeerJS library (MIT)
 js/draw.js          cartoon drawing helpers
 js/fighters.js      roster pack 1 (Kip, Koko, Kooka, Croc) + shared move helpers
 js/fighters2.js     roster pack 2 (Spike, Dotty, Wombo, Dash)
@@ -107,4 +125,7 @@ node tools/smoke-test.js http://localhost:8123/ /tmp    # every matchup CPU vs C
 node tools/ult-shots.js http://localhost:8123/ /tmp     # screenshots of every special/ultimate
 node tools/device-shots.js http://localhost:8123/ /tmp  # phone / iPad touch layouts
 node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates per fighter
+node tools/net-test.js http://localhost:8123/           # online: two copies of a match must stay in exact sync
+PEER_SERVER=127.0.0.1:9000/sf node tools/online-test.js http://localhost:8123/ /tmp
+                                                        # online: two real browser windows (needs a local `peerjs` server)
 ```

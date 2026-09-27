@@ -33,12 +33,29 @@
           <button class="btn big" data-act="mode-1p">🦘 1 Player vs CPU</button>
           <button class="btn big" data-act="mode-2p">👫 2 Players</button>
           <button class="btn big" data-act="mode-arcade">🏆 Arcade</button>
+          <button class="btn big online-btn" data-act="online">🌏 Play Online</button>
           <div class="row">
             <button class="btn" data-act="howto">❓ How to Play</button>
             <button class="btn" data-act="settings">⚙️ Settings</button>
             <button class="btn" data-act="fullscreen" id="fs-btn">⛶ Full Screen</button>
           </div>
         </div>
+      </section>
+
+      <!-- ONLINE -->
+      <section id="scr-online" class="screen solid">
+        <button class="btn back" data-act="back">◀ Back</button>
+        <h2>🌏 Play Online with a Friend</h2>
+        <div id="online-home" class="menu col">
+          <p class="blurb">Play against a friend on another device, at home on the same wifi or far away over the internet. One of you makes a room and the other types in its code.</p>
+          <button class="btn big" data-act="online-host">🏠 Make a Room</button>
+          <div class="join-row">
+            <input id="join-code" type="text" placeholder="ROOM CODE" maxlength="14" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go">
+            <button class="btn big go" data-act="online-join">Join ▶</button>
+          </div>
+          <p class="blurb small">Only people you share your code with can join. There's no chat and no strangers.</p>
+        </div>
+        <div id="online-status" class="online-status"></div>
       </section>
 
       <!-- DIFFICULTY -->
@@ -96,6 +113,7 @@
           <button class="btn big" data-act="resume">▶ Resume</button>
           <button class="btn big" data-act="restart">🔄 Restart Match</button>
           <button class="btn" data-act="howto">❓ Controls</button>
+          <p id="pause-note" class="blurb small hidden">You're playing online, so the fight keeps going!</p>
           <button class="btn" data-act="quit">🏠 Main Menu</button>
         </div>
       </section>
@@ -156,6 +174,15 @@
               </ul>
             </div>
             <div class="card">
+              <h3>🌏 Play Online</h3>
+              <ul>
+                <li>One player taps <b>Make a Room</b> and gets a code like <b>KOALA-42</b>.</li>
+                <li>The other player taps <b>Play Online</b> on their own device, types the code and taps <b>Join</b>.</li>
+                <li>You each pick a fighter on your own device, then the room maker picks the stage. Fight!</li>
+                <li>Only people you give the code to can join. There's no chat.</li>
+              </ul>
+            </div>
+            <div class="card">
               <h3>🥧 Power-up Snacks</h3>
               <ul>
                 <li><b>Meat Pie:</b> gives you back some health.</li>
@@ -191,6 +218,7 @@
   <script src="js/util.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/input.js"></script>
+  <script src="js/net.js"></script>
   <script src="js/draw.js"></script>
   <script src="js/fighters.js"></script>
   <script src="js/fighters2.js"></script>

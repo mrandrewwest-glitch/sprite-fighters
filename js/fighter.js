@@ -100,8 +100,10 @@ SF.Fighter = class {
   setInput(raw) {
     const inp = Object.assign({}, raw);
     ['up', 'punch', 'kick', 'special', 'charge'].forEach((a) => {
-      inp['p' + a] = raw[a] && !this.prev[a];
+      // A press seen during hit-freeze is kept until the fighter gets to act on it.
+      inp['p' + a] = (raw[a] && !this.prev[a]) || (!this.inpUsed && !!this.inp['p' + a]);
     });
+    this.inpUsed = false;
     this.prev = raw;
     this.inp = inp;
     if (inp.ppunch) this.buffer = { a: 'punch', t: 0 };
@@ -131,6 +133,7 @@ SF.Fighter = class {
     this.stateTime++;
     if (this.invuln > 0) this.invuln--;
     if (this.buffer && ++this.buffer.t > 10) this.buffer = null;
+    this.inpUsed = true;
     if (this.buff && --this.buff.t <= 0) this.buff = null;
     if (this.buff && this.anim % 4 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.4, '#ff8ad8');
     if ((this.raging() || this.frenzied()) && this.anim % 5 === 0) m.fx.chargeBit(this.x, this.y - this.def.height * 0.6, '#ff5a3c');

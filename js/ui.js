@@ -61,6 +61,11 @@
   }
 
   function back() {
+    if (ui.flow.mode === 'online' && ui.screen !== 'online' && ui.screen !== 'howto' && ui.screen !== 'settings') {
+      SF.Audio.play('back');
+      return toTitle();
+    }
+    if (ui.screen === 'online') leaveOnline(true);
     const prev = ui.history.pop();
     SF.Audio.play('back');
     if (!prev) return show('title');
@@ -91,6 +96,7 @@
   }
 
   function toTitle() {
+    if (ui.flow.mode === 'online') leaveOnline(true);
     ui.match = null;
     ui.history = [];
     startDemo();
@@ -109,6 +115,7 @@
   function confirmPick(id) {
     const f = ui.flow;
     SF.Audio.play('select');
+    if (f.mode === 'online') return onlinePicked(id);
     if (f.step === 'p1') {
       f.p1 = id;
       if (f.mode === 'arcade') {
@@ -149,6 +156,7 @@
     clearTimeout(ui.vsTimer);
     if (ui.screen !== 'vs') return;
     const f = ui.flow;
+    if (f.mode === 'online') return beginOnlineMatch();
     const vsCpu = !isTwoPlayer();
     const opts = {
       p1: f.p1,
@@ -179,6 +187,7 @@
     if (match !== ui.match) return;
     const f = ui.flow;
     const wf = match.f[winner];
+    if (f.mode === 'online') return onlineMatchEnd(winner, match);
     const humanWon = isTwoPlayer() || winner === 0;
     let title = wf.def.name + ' WINS!';
     let quote = '“' + wf.def.win + '”';
@@ -215,6 +224,15 @@
 
   function pause() {
     if (!ui.match || ui.match.paused || ui.match.roundState === 'over') return;
+    const online = !!ui.match.o.net;
+    $('#scr-pause [data-act="restart"]').classList.toggle('hidden', online);
+    $('#pause-note').classList.toggle('hidden', !online);
+    if (online) {
+      // Online games can't be paused: the fight keeps going for your friend.
+      if (ui.screen === 'pause') return;
+      ui.history = [];
+      return show('pause');
+    }
     ui.match.paused = true;
     ui.history = [];
     show('pause');
@@ -223,8 +241,231 @@
   function resume() {
     if (!ui.match) return;
     ui.match.paused = false;
+    if (ui.match.o.net) return show(null);
     ui.history = [];
     show(null);
+  }
+
+  // ------------------------------------------------------------ online play
+  // Friends-only: one device creates a room and shows a code, the other types it in.
+  ui.online = {};
+
+  function setOnlineStatus(html, home) {
+    $('#online-home').classList.toggle('hidden', !home);
+    $('#online-status').innerHTML = html || '';
+  }
+
+  function openOnline() {
+    ui.flow = { mode: 'online', step: 'online' };
+    ui.online = {};
+    go('online');
+    setOnlineStatus('', true);
+    $('#join-code').value = '';
+  }
+
+  async function hostOnline() {
+    ui.online = { role: 'host' };
+    setOnlineStatus('<div class="spinner"></div>Making a room…');
+    try {
+      await SF.Net.host();
+    } catch (e) {
+      setOnlineStatus(`<p class="err">${e.message}</p>`, true);
+    }
+  }
+
+  async function joinOnline() {
+    const code = SF.Net.normaliseCode($('#join-code').value);
+    if (!/^[A-Z]+-\d+$/.test(code)) {
+      setOnlineStatus('<p class="err">Type the room code your friend sees, like KOALA-42.</p>', true);
+      return;
+    }
+    ui.online = { role: 'guest' };
+    setOnlineStatus(`<div class="spinner"></div>Joining <b>${code}</b>…`);
+    try {
+      await SF.Net.join(code);
+    } catch (e) {
+      setOnlineStatus(`<p class="err">${e.message}</p>`, true);
+    }
+  }
+
+  SF.Net.on('status', (state, code) => {
+    if (state === 'waiting') {
+      setOnlineStatus(
+        `<p>Tell your friend this room code:</p><div class="room-code">${code}</div>` +
+          '<p class="small"><span class="spinner"></span>Waiting for your friend to join…</p>'
+      );
+    }
+  });
+
+  SF.Net.on('error', (msg) => {
+    // Once connected, the game talks device-to-device, so server hiccups don't matter.
+    if (SF.Net.connected()) return;
+    SF.Net.close();
+    if (ui.screen !== 'online') show('online');
+    setOnlineStatus(`<p class="err">${msg}</p>`, true);
+  });
+
+  SF.Net.on('connected', () => {
+    SF.Audio.play('ready');
+    onlineSelect();
+  });
+
+  SF.Net.on('closed', () => friendLeft());
+
+  SF.Net.on('data', (msg) => {
+    if (!msg || !msg.t) return;
+    if (msg.t === 'in' || msg.t === 'snap') {
+      if (ui.netSession) ui.netSession.receive(msg);
+      return;
+    }
+    if (msg.t === 'pick') {
+      ui.online.friendPick = msg.id;
+      return checkPicks();
+    }
+    if (msg.t === 'start') return handleStart(msg);
+    if (msg.t === 'rematch') {
+      ui.online.friendRematch = true;
+      return checkRematch();
+    }
+    if (msg.t === 'reselect') return onlineSelect();
+    if (msg.t === 'bye') return friendLeft('Your friend left the game.');
+  });
+
+  function onlineSelect() {
+    ui.match = null;
+    ui.netSession = null;
+    if (!ui.demo) startDemo();
+    const role = SF.Net.role;
+    ui.online = { role, myPick: ui.online.myPick, friendPick: null };
+    ui.flow = { mode: 'online', step: 'p1', diff: 'medium', sel: null, myPick: ui.online.myPick };
+    ui.history = [{ screen: 'title', step: 'p1' }];
+    show('select');
+    setupSelect();
+  }
+
+  function onlinePicked(id) {
+    ui.online.myPick = id;
+    ui.flow.myPick = id;
+    SF.Net.send({ t: 'pick', id });
+    show('online');
+    setOnlineStatus(`<div class="spinner"></div>You picked <b>${SF.FIGHTERS[id].full}</b>!<br>Waiting for your friend to choose…`);
+    checkPicks();
+  }
+
+  function checkPicks() {
+    const o = ui.online;
+    if (!o.myPick || !o.friendPick) return;
+    if (SF.Net.role === 'host') {
+      ui.history = [{ screen: 'title', step: 'p1' }];
+      show('stage');
+      setupStages();
+      $('#stage-title').textContent = 'Pick a stage for you both';
+    } else {
+      show('online');
+      setOnlineStatus(`<div class="spinner"></div>Your friend picked <b>${SF.FIGHTERS[o.friendPick].full}</b>!<br>They're choosing the stage…`);
+    }
+  }
+
+  function startOnlineMatch() {
+    const o = ui.online;
+    const msg = {
+      t: 'start',
+      p1: o.myPick,
+      p2: o.friendPick,
+      stage: ui.flow.stage,
+      seed: Math.floor(SF.realRandom() * 2147483647),
+      rounds: SF.settings.rounds,
+      timer: SF.settings.timer,
+      dropBears: SF.settings.dropBears,
+      powerUps: SF.settings.powerUps,
+    };
+    SF.Net.send(msg);
+    handleStart(msg);
+  }
+
+  function handleStart(msg) {
+    const local = SF.Net.role === 'host' ? 0 : 1;
+    ui.online.start = msg;
+    ui.online.meRematch = false;
+    ui.online.friendRematch = false;
+    ui.netSession = new SF.NetSession({ local, seed: msg.seed, send: (m) => SF.Net.send(m) });
+    Object.assign(ui.flow, { p1: msg.p1, p2: msg.p2, stage: msg.stage });
+    showVs();
+  }
+
+  function beginOnlineMatch() {
+    const msg = ui.online.start;
+    const session = ui.netSession;
+    if (!msg || !session) return;
+    ui.demo = null;
+    ui.match = new SF.Match({
+      p1: msg.p1,
+      p2: msg.p2,
+      stage: msg.stage,
+      controllers: [{ type: 'human', slot: 0 }, { type: 'human', slot: 1 }],
+      touchPlayers: [session.local],
+      touchLayout: 'single',
+      rounds: msg.rounds,
+      timer: msg.timer,
+      dropBears: msg.dropBears,
+      powerUps: msg.powerUps,
+      net: session,
+      onEnd: onMatchEnd,
+    });
+    ui.history = [];
+    show(null);
+  }
+
+  function onlineMatchEnd(winner, match) {
+    const wf = match.f[winner];
+    const won = winner === match.o.net.local;
+    $('#res-title').innerHTML = won ? '🏆 YOU WIN! 🏆' : 'YOUR FRIEND WINS!';
+    $('#res-quote').innerHTML = `${wf.def.full}: “${wf.def.win}”` + (won ? '' : '<br><br>Have another go, mate!');
+    $('#res-buttons').innerHTML =
+      '<button class="btn big go" data-act="online-rematch">🔄 Rematch</button>' +
+      '<button class="btn" data-act="online-reselect">👥 Change Fighters</button>' +
+      '<button class="btn" data-act="online-leave">🏠 Leave</button>';
+    SF.drawPortrait($('#res-portrait'), wf.def.id, { happy: true, alt: winner === 1 && match.o.p1 === match.o.p2, flip: winner === 1 });
+    ui.history = [];
+    show('results');
+  }
+
+  function onlineRematch(btn) {
+    ui.online.meRematch = true;
+    SF.Net.send({ t: 'rematch' });
+    if (btn) btn.textContent = '⏳ Waiting for friend…';
+    checkRematch();
+  }
+
+  function checkRematch() {
+    const o = ui.online;
+    if (ui.screen === 'results' && o.friendRematch && !o.meRematch) {
+      const b = $('#res-buttons [data-act="online-rematch"]');
+      if (b) b.textContent = '🔄 Rematch (your friend is ready!)';
+    }
+    if (!o.meRematch || !o.friendRematch || SF.Net.role !== 'host') return;
+    ui.flow.stage = o.start.stage;
+    startOnlineMatch();
+  }
+
+  function leaveOnline(tellFriend) {
+    if (tellFriend) SF.Net.send({ t: 'bye' });
+    SF.Net.close();
+    ui.netSession = null;
+    ui.online = {};
+  }
+
+  function friendLeft(why) {
+    if (ui.flow.mode !== 'online') return;
+    const wasPlaying = !!(ui.match && ui.match.o.net);
+    const text = why || (wasPlaying ? 'The connection to your friend was lost.' : 'Your friend left.');
+    leaveOnline(false);
+    ui.match = null;
+    if (!ui.demo) startDemo();
+    ui.flow = { mode: 'online', step: 'online' };
+    ui.history = [{ screen: 'title', step: 'p1' }];
+    show('online');
+    setOnlineStatus(`<p class="err">😢 ${text}</p>`, true);
   }
 
   // ------------------------------------------------------------ character select
@@ -264,6 +505,11 @@
 
   function setupSelect() {
     const f = ui.flow;
+    if (f.mode === 'online') {
+      $('#select-title').innerHTML = '🌏 Choose your fighter';
+      $$('.card-f').forEach((c) => c.classList.remove('p1sel'));
+      return selectFighter(f.myPick || 'kip');
+    }
     const title =
       f.step === 'p1'
         ? isTwoPlayer() ? '<span style="color:#ff6b6b">Player 1</span>: choose your fighter' : 'Choose your fighter'
@@ -305,6 +551,7 @@
   // ------------------------------------------------------------ stage select
   function setupStages() {
     const root = $('#stage-grid');
+    $('#stage-title').textContent = 'Pick a stage';
     if (root.children.length) return;
     SF.STAGE_LIST.concat(['random']).forEach((id) => {
       const b = document.createElement('button');
@@ -319,6 +566,7 @@
       b.addEventListener('click', () => {
         ui.flow.stage = id === 'random' ? SF.pick(SF.STAGE_LIST) : id;
         SF.Audio.play('select');
+        if (ui.flow.mode === 'online') return startOnlineMatch();
         showVs();
       });
       root.appendChild(b);
@@ -400,6 +648,14 @@
       case 'resume': return resume();
       case 'restart': return restartMatch();
       case 'quit': return toTitle();
+      case 'online': return openOnline();
+      case 'online-host': return hostOnline();
+      case 'online-join': return joinOnline();
+      case 'online-rematch': return onlineRematch(el);
+      case 'online-reselect':
+        SF.Net.send({ t: 'reselect' });
+        return onlineSelect();
+      case 'online-leave': return toTitle();
       case 'change':
         ui.flow.p1 = ui.flow.p1 || 'kip';
         ui.history = [{ screen: 'title', step: 'p1' }];
@@ -514,6 +770,10 @@
   window.addEventListener('keydown', (e) => {
     SF.Audio.unlock();
     ui.lastInput = 'keys';
+    if (e.target && e.target.tagName === 'INPUT') {
+      if (e.code === 'Enter') joinOnline();
+      return;
+    }
     if (!ui.screen) {
       if (e.code === 'Escape' && ui.match) {
         e.preventDefault();
