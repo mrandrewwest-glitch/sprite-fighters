@@ -1,7 +1,9 @@
-// Online failure test: the joining window is forced to use only relay servers
-// that it can't reach, so the direct link fails. Checks the retries, the
-// helpful message, that the host's room stays open, and that a second join
-// (with normal settings) then connects.
+// Online failure test: the joining window is forced to use only TURN servers
+// that it can't reach, so the direct link fails, and its backup relay servers
+// are unreachable too. Checks the retries, the helpful message, that the
+// host's room stays open, and that a second join (with normal settings) then
+// connects. Set MQTT_BROKER=ws://127.0.0.1:8883 to give the host (and the
+// second join) a local backup relay broker.
 // Usage: PEER_SERVER=127.0.0.1:9000/sf node tools/online-fail-test.js [url] [outDir]
 const path = require('path');
 let chromium;
@@ -27,6 +29,9 @@ const server = { host: h, port: +port, path: '/' + p.join('/'), secure: false };
   const host = await mk();
   const guest = await mk();
   await host.evaluate((s) => (SF.Net.serverOptions = s), server);
+  const broker = process.env.MQTT_BROKER || 'ws://127.0.0.1:1';
+  await host.evaluate((b) => (SF.Relay.brokers = [b]), broker);
+  await guest.evaluate(() => (SF.Relay.brokers = ['ws://127.0.0.1:1']));
   // Guest: relay-only with no relay servers -> no possible path.
   await guest.evaluate((s) => (SF.Net.serverOptions = Object.assign({ config: { iceServers: [], iceTransportPolicy: 'relay' } }, s)), server);
 
@@ -48,6 +53,7 @@ const server = { host: h, port: +port, path: '/' + p.join('/'), secure: false };
 
   // Second attempt with normal settings should connect to the same, still-open room.
   await guest.evaluate((s) => (SF.Net.serverOptions = s), server);
+  await guest.evaluate((b) => (SF.Relay.brokers = [b]), broker);
   await guest.fill('#join-code', code);
   await guest.click('[data-act="online-join"]');
   await host.waitForSelector('#scr-select.show', { timeout: 30000 });

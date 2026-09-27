@@ -38,12 +38,19 @@ const url = process.argv[2] || 'http://localhost:8123/';
           return held;
         };
       };
+      // Every other game acts like the backup relay: longer delay, batched
+      // sending, and 15% of button-press messages lost on the way.
+      const relayish = game % 2 === 1;
       const ends = [null, null];
       const snaps = [new Map(), new Map()];
       const sides = [0, 1].map((local) => {
         const session = new SF.NetSession({
           local, seed, readLocal: mash(seed + local * 7919),
-          send: (m) => queues[1 - local].push({ at: tick + 1 + Math.floor(Math.random() * 8), m }),
+          delay: relayish ? 10 : 4, sendEvery: relayish ? 2 : 1,
+          send: (m) => {
+            if (relayish && m.t === 'in' && Math.random() < 0.15) return; // lost
+            queues[1 - local].push({ at: tick + 1 + Math.floor(Math.random() * (relayish ? 20 : 8)), m });
+          },
         });
         const match = new SF.Match({
           p1: ids[0], p2: ids[1], stage, rounds: 3, timer: 60, silent: true, dropBears: true, powerUps: true,
@@ -70,7 +77,7 @@ const url = process.argv[2] || 'http://localhost:8123/';
           break;
         }
       }
-      results.push(`${ids.join(' v ')} @${stage}: frames=${snaps[0].size}, winners host=${ends[0]} guest=${ends[1]}, ` +
+      results.push(`${relayish ? '[relay+drops] ' : '[direct] '}${ids.join(' v ')} @${stage}: frames=${snaps[0].size}, winners host=${ends[0]} guest=${ends[1]}, ` +
         `firstDesync=${firstDiff}, corrections=${sides[1].session.corrections || 0}`);
     }
     return results.join('\n');

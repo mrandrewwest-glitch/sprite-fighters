@@ -10,7 +10,7 @@ SF.FONT = "'Luckiest Guy', 'Arial Black', Impact, sans-serif";
 
 // Game version, shown on the title screen. Bump this (and CACHE in sw.js)
 // with each release so devices know there's a new version.
-SF.VERSION = '1.5.0';
+SF.VERSION = '1.6.0';
 
 SF.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 SF.lerp = (a, b, t) => a + (b - a) * t;

@@ -393,3 +393,4 @@ h3 { margin: 0 0 calc(var(--u) * 6); font-weight: normal; color: var(--gold); fo
   border-radius: calc(var(--u) * 10);
   background: rgba(20, 10, 40, 0.6);
 }
+.link-type { font-family: system-ui, sans-serif; font-weight: 700; font-size: calc(var(--u) * 14); color: #bfe3ff; vertical-align: middle; margin-left: calc(var(--u) * 8); }

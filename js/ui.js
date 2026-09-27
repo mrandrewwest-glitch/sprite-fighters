@@ -292,6 +292,9 @@
     if (state === 'joining' && attempt > 1) {
       setOnlineStatus(`<div class="spinner"></div>Still trying to link up with <b>${code}</b>… (try ${attempt} of ${max})`);
     }
+    if (state === 'relay') {
+      setOnlineStatus(`<div class="spinner"></div>Linking up with <b>${code}</b>…<br><span class="small">Trying the backup route (this can take a few seconds)</span>`);
+    }
     if (state === 'waiting') {
       setOnlineStatus(
         `<p>Tell your friend this room code:</p><div class="room-code">${code}</div>` +
@@ -339,7 +342,7 @@
 
   SF.Net.on('data', (msg) => {
     if (!msg || !msg.t) return;
-    if (msg.t === 'in' || msg.t === 'snap') {
+    if (msg.t === 'in' || msg.t === 'snap' || msg.t === 'need') {
       if (ui.netSession) ui.netSession.receive(msg);
       return;
     }
@@ -393,8 +396,12 @@
 
   function startOnlineMatch() {
     const o = ui.online;
+    // Input delay to suit the connection: half the round trip plus a little spare.
+    const delay = Math.max(4, Math.min(18, Math.ceil(SF.Net.rtt() / 2 / (1000 / 60)) + 2));
     const msg = {
       t: 'start',
+      delay,
+      sendEvery: SF.Net.linkType === 'relay' ? 2 : 1,
       p1: o.myPick,
       p2: o.friendPick,
       stage: ui.flow.stage,
@@ -409,11 +416,14 @@
   }
 
   function handleStart(msg) {
+    if (ui.online.start && ui.online.start.seed === msg.seed && ui.netSession) return; // already started
     const local = SF.Net.role === 'host' ? 0 : 1;
     ui.online.start = msg;
     ui.online.meRematch = false;
     ui.online.friendRematch = false;
-    ui.netSession = new SF.NetSession({ local, seed: msg.seed, send: (m) => SF.Net.send(m) });
+    ui.netSession = new SF.NetSession({
+      local, seed: msg.seed, delay: msg.delay || 4, sendEvery: msg.sendEvery || 1, send: (m) => SF.Net.send(m),
+    });
     Object.assign(ui.flow, { p1: msg.p1, p2: msg.p2, stage: msg.stage });
     showVs();
   }
@@ -531,7 +541,8 @@
   function setupSelect() {
     const f = ui.flow;
     if (f.mode === 'online') {
-      $('#select-title').innerHTML = '🌏 Choose your fighter';
+      const via = SF.Net.linkType === 'relay' ? '📡 backup relay' : '🔗 direct link';
+      $('#select-title').innerHTML = `🌏 Choose your fighter <span class="link-type">${via}</span>`;
       $$('.card-f').forEach((c) => c.classList.remove('p1sel'));
       return selectFighter(f.myPick || 'kip');
     }

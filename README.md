@@ -41,11 +41,23 @@ Play against a friend on another device (iPad, phone or computer), on the same w
 **Friends only:** there's no matchmaking with strangers and no chat. Only someone you give the code to can join, and a room holds just two players.
 
 **How it works:**
-- The devices connect directly to each other (WebRTC), using the free public [PeerJS](https://peerjs.com) server only to introduce them. The PeerJS library (MIT licence) is bundled in `js/vendor/`.
-- It uses *lockstep* netcode. Both devices run the same fight and send only button presses, each scheduled 4 frames (about 1/15 of a second) ahead so it has time to arrive. Random events (snacks, Drop Bears) use a shared seed so both screens match exactly. As a safety net, the host sends a small check every second and the guest quietly corrects any tiny drift.
+- The devices first try to connect directly to each other (WebRTC), using the free public [PeerJS](https://peerjs.com) server only to introduce them. The PeerJS library (MIT licence) is bundled in `js/vendor/`.
+- **📡 Backup relay:** mobile data (and some strict wifi) often blocks direct device-to-device links. If the direct link hasn't connected after about 5 seconds, the joining device also tries a backup route. Button presses then travel through a free public MQTT server (HiveMQ, EMQX or Mosquitto, tried in turn; the code is in `js/relay.js`). The fighter select screen shows which route you got: 🔗 direct link or 📡 backup relay. Only button presses and game setup go through the relay. There's no chat and no personal info, and the room locks to the two devices once they've linked.
+- It uses *lockstep* netcode. Both devices run the same fight and send only button presses, each scheduled a few frames ahead so it has time to arrive. The delay is measured when the match starts: about 4 frames on a direct link, more on the relay. Recent presses are re-sent with every message, and a device that misses one asks for it again, so a dropped message just causes a short wait. Random events (snacks, Drop Bears) use a shared seed so both screens match exactly. As a safety net, the host sends a small check every second and the guest quietly corrects any tiny drift.
 - If a press is late, the game briefly waits and shows "Waiting for your friend…". Online games can't be paused.
-- Some very strict networks (for example some school or work wifi) block direct device-to-device connections. If the devices can't link, the joining device retries automatically, then shows tips and a small diagnostic line (`why / ice / paths`). The host's room stays open so the friend can try again.
-- Connections use several free STUN servers plus PeerJS's free TURN relays. For the most reliable connections across different networks (for example home wifi vs mobile data), add your own TURN server (e.g. a free [metered.ca](https://www.metered.ca/stun-turn) account) to `EXTRA_TURN` in `js/net.js`.
+- If neither route works, the joining device shows tips and a small diagnostic line (`direct / ice / paths / relay`). The host's room stays open so the friend can try again.
+
+**Optional: your own TURN server (smoothest on mobile data).** A TURN server relays the direct WebRTC link itself, which is faster than the backup relay. A free [metered.ca](https://www.metered.ca/stun-turn) account works:
+1. Sign up for the free plan and create a TURN app/credential.
+2. Copy the TURN server addresses, username and password it shows (use the `turn:` / `turns:` entries).
+3. Add them to `EXTRA_TURN` in `js/net.js`, for example:
+   ```js
+   const EXTRA_TURN = [
+     { urls: ['turn:global.relay.metered.ca:80', 'turn:global.relay.metered.ca:443', 'turns:global.relay.metered.ca:443?transport=tcp'],
+       username: 'YOUR-USERNAME', credential: 'YOUR-PASSWORD' },
+   ];
+   ```
+4. Bump the version (see below) and redeploy.
 
 ## How to play
 
@@ -96,7 +108,8 @@ css/style.css       menus, touch controls, responsive scaling
 js/util.js          constants, helpers, saved settings
 js/audio.js         synthesised sound effects + victory music
 js/input.js         keyboard, gamepad and touch controls
-js/net.js           online play: room codes (PeerJS) and lockstep netcode
+js/net.js           online play: room codes (PeerJS), linking up and lockstep netcode
+js/relay.js         backup relay for online play (tiny MQTT-over-WebSocket client)
 js/vendor/          bundled PeerJS library (MIT)
 js/draw.js          cartoon drawing helpers
 js/fighters.js      roster pack 1 (Kip, Koko, Kooka, Croc) + shared move helpers
@@ -131,8 +144,11 @@ node tools/ult-shots.js http://localhost:8123/ /tmp     # screenshots of every s
 node tools/device-shots.js http://localhost:8123/ /tmp  # phone / iPad touch layouts
 node tools/balance.js http://localhost:8123/ 8          # CPU-vs-CPU win rates per fighter
 node tools/net-test.js http://localhost:8123/           # online: two copies of a match must stay in exact sync
-PEER_SERVER=127.0.0.1:9000/sf node tools/online-test.js http://localhost:8123/ /tmp
-                                                        # online: two real browser windows (needs a local `peerjs` server)
-PEER_SERVER=127.0.0.1:9000/sf node tools/online-fail-test.js http://localhost:8123/ /tmp
-                                                        # online: a link that can't connect -> retries, tips, room stays open
+PEER_SERVER=127.0.0.1:9000/sf MQTT_BROKER=ws://127.0.0.1:8883 node tools/online-test.js http://localhost:8123/ /tmp
+                                                        # online: two real browser windows (needs a local `peerjs` server
+                                                        # and a local MQTT-over-WebSocket broker, e.g. aedes + ws)
+PEER_SERVER=127.0.0.1:9000/sf MQTT_BROKER=ws://127.0.0.1:8883 FORCE_RELAY=1 node tools/online-test.js http://localhost:8123/ /tmp
+                                                        # online: direct link blocked -> must play through the backup relay
+PEER_SERVER=127.0.0.1:9000/sf MQTT_BROKER=ws://127.0.0.1:8883 node tools/online-fail-test.js http://localhost:8123/ /tmp
+                                                        # online: no route works -> retries, tips, room stays open
 ```
